@@ -183,7 +183,7 @@ var BIRTHDAY *SoundCollection = &SoundCollection{
 	},
 }
 
-var BIRTHDAY *SoundCollection = &SoundCollection{
+var DOTA *SoundCollection = &SoundCollection{
 	Prefix: "dota",
 	Commands: []string{
 		"!dota",

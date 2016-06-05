@@ -189,10 +189,13 @@ var DOTA *SoundCollection = &SoundCollection{
 		"!dota",
 	},
 	Sounds: []*Sound{
-		createSound("waow", 50, 250),
-        createSound("balance", 10, 250),
-        createSound("rekt", 10, 250),
-        createSound("stick", 10, 250),
+		createSound("waow", 50, 0),
+        createSound("balance", 10, 0),
+        createSound("rekt", 10, 0),
+        createSound("stick", 10, 0),
+        createSound("mana", 50, 0),
+        createSound("disaster", 50, 0),
+        createSound("liquid", 50, 0),
 	},
 }
 
@@ -203,7 +206,12 @@ var OVERWATCH *SoundCollection = &SoundCollection{
         "!ow",
 	},
 	Sounds: []*Sound{
-		createSound("payload", 50, 250),
+		createSound("payload", 50, 0),
+        createSound("whoa", 50, 0),
+        createSound("woah", 50, 0),
+        createSound("winky", 50, 0),
+        createSound("turd", 50, 0),
+        createSound("cyka", 50, 0),
 	},
 }
 
@@ -213,8 +221,30 @@ var UJ *SoundCollection = &SoundCollection{
 		"!uj",
 	},
 	Sounds: []*Sound{
-		createSound("god", 50, 250),
-		createSound("song", 50, 250),
+		createSound("god", 50, 0),
+		createSound("song", 50, 0),
+	},
+}
+
+var MEME *SoundCollection = &SoundCollection{
+	Prefix: "meme",
+	Commands: []string{
+		"!meme",
+        "!memes",
+	},
+	Sounds: []*Sound{
+		createSound("mad", 50, 0),
+		createSound("ateam", 50, 0),
+	},
+}
+
+var TRUMP *SoundCollection = &SoundCollection{
+	Prefix: "trump",
+	Commands: []string{
+		"!trump",
+	},
+	Sounds: []*Sound{
+		createSound("10ft", 50, 0),
 	},
 }
 
@@ -228,6 +258,8 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
     DOTA,
     OVERWATCH,
     UJ,
+    MEME,
+    TRUMP,
 }
 
 // Create a Sound struct

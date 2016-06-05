@@ -196,6 +196,8 @@ var DOTA *SoundCollection = &SoundCollection{
         createSound("mana", 50, 0),
         createSound("disaster", 50, 0),
         createSound("liquid", 50, 0),
+        createSound("history", 50, 0),
+        createSound("smut", 50, 0),
 	},
 }
 
@@ -235,6 +237,8 @@ var MEME *SoundCollection = &SoundCollection{
 	Sounds: []*Sound{
 		createSound("mad", 50, 0),
 		createSound("ateam", 50, 0),
+        createSound("bennyhill", 50, 0),
+        createSound("tuba", 50, 0),
 	},
 }
 
@@ -245,8 +249,40 @@ var TRUMP *SoundCollection = &SoundCollection{
 	},
 	Sounds: []*Sound{
 		createSound("10ft", 50, 0),
+		createSound("motivation", 50, 0),
 	},
 }
+
+var STRAKARNIR *SoundCollection = &SoundCollection{
+	Prefix: "strakarnir",
+	Commands: []string{
+		"!strákarnir",
+	},
+	Sounds: []*Sound{
+		createSound("viðlag", 50, 0),
+	},
+}
+
+var IS *SoundCollection = &SoundCollection{
+	Prefix: "is",
+	Commands: []string{
+		"!ísland",
+        "!is",
+	},
+	Sounds: []*Sound{
+		createSound("villi", 50, 0),
+		createSound("gamegame", 50, 0),
+		createSound("nicegame", 50, 0),
+		createSound("gúmmí", 50, 0),
+		createSound("prumpa", 50, 0),
+		createSound("ríða", 50, 0),
+        createSound("grín", 50, 0),
+        createSound("almar", 50, 0),
+        createSound("mis", 50, 0),
+        createSound("travis", 50, 0),
+	},
+}
+
 
 var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	AIRHORN,
@@ -260,6 +296,8 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
     UJ,
     MEME,
     TRUMP,
+    STRAKARNIR,
+    IS,
 }
 
 // Create a Sound struct
@@ -533,7 +571,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
-	s.UpdateStatus(0, "airhornbot.com")
+	s.UpdateStatus(0, "Dank memes")
 }
 
 func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {

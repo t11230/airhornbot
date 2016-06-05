@@ -191,6 +191,7 @@ var DOTA *SoundCollection = &SoundCollection{
 	Sounds: []*Sound{
 		createSound("waow", 50, 250),
         createSound("balance", 10, 250),
+        createSound("rekt", 10, 250),
         createSound("stick", 10, 250),
 	},
 }

@@ -65,6 +65,11 @@ type SoundCollection struct {
 	soundRange int
 }
 
+type TextCollection struct {
+    Commands    []string
+    Text        string
+}
+
 // Sound represents a sound clip
 type Sound struct {
 	Name string
@@ -213,6 +218,7 @@ var OVERWATCH *SoundCollection = &SoundCollection{
         createSound("woah", 50, 0),
         createSound("winky", 50, 0),
         createSound("turd", 50, 0),
+        createSound("ryugawagatekiwokurau", 50, 0),
         createSound("cyka", 50, 0),
 	},
 }
@@ -239,6 +245,9 @@ var MEME *SoundCollection = &SoundCollection{
 		createSound("ateam", 50, 0),
         createSound("bennyhill", 50, 0),
         createSound("tuba", 50, 0),
+        createSound("donethis", 50, 0),
+        createSound("leeroy", 50, 0),
+        createSound("slam", 50, 0),
 	},
 }
 
@@ -263,6 +272,16 @@ var STRAKARNIR *SoundCollection = &SoundCollection{
 	},
 }
 
+var CRY *SoundCollection = &SoundCollection{
+	Prefix: "cry",
+	Commands: []string{
+		"!cry",
+	},
+	Sounds: []*Sound{
+		createSound("baby", 50, 0),
+	},
+}
+
 var IS *SoundCollection = &SoundCollection{
 	Prefix: "is",
 	Commands: []string{
@@ -280,7 +299,75 @@ var IS *SoundCollection = &SoundCollection{
         createSound("almar", 50, 0),
         createSound("mis", 50, 0),
         createSound("travis", 50, 0),
+        createSound("indriði", 50, 0),
 	},
+}
+
+var SOUTHPARK *SoundCollection = &SoundCollection{
+	Prefix: "sp",
+	Commands: []string{
+		"!sp",
+        "!southpark",
+	},
+	Sounds: []*Sound{
+		createSound("screw", 50, 0),
+	},
+}
+
+var SILICONVALLEY *SoundCollection = &SoundCollection{
+    Prefix: "sv",
+	Commands: []string{
+		"!sv",
+        "!silicon",
+        "!siliconvalley",
+	},
+	Sounds: []*Sound{
+		createSound("piss", 50, 0),
+		createSound("fucks", 50, 0),
+		createSound("shittalk", 50, 0),
+        createSound("attractive", 50, 0),
+        createSound("win", 50, 0),
+	},
+}
+
+var ARCHER *SoundCollection = &SoundCollection{
+    Prefix: "archer",
+	Commands: []string{
+        "!archer",
+	},
+	Sounds: []*Sound{
+		createSound("dangerzone", 50, 0),
+		createSound("DANGERZONE", 50, 0),
+		createSound("klog", 50, 0),
+	},
+}
+
+var SOUNDCOMMANDS *TextCollection = &TextCollection{
+    Commands: []string{
+        "!imanoob",
+    },
+    Text: getSoundCommands(),
+}
+
+var GITHUB *TextCollection = &TextCollection{
+    Commands: []string{
+        "!github",
+        "!git",
+    },
+    Text: "https://github.com/andribja/airhornbot",
+}
+
+var HILLARY *TextCollection = &TextCollection{
+    Commands: []string{
+        "!hillary",
+    },
+    Text: "https://i.imgur.com/1PFAZsV.jpg",
+}
+
+var TEXTCMDS []*TextCollection = []*TextCollection{
+    SOUNDCOMMANDS, 
+    GITHUB,
+    HILLARY,
 }
 
 
@@ -297,8 +384,30 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
     MEME,
     TRUMP,
     STRAKARNIR,
+    CRY,
     IS,
+    SOUTHPARK,
+    SILICONVALLEY,
+    ARCHER,
 }
+
+func getSoundCommands() string {
+    buffer := bytes.NewBufferString("")
+    for _, coll := range COLLECTIONS {
+        buffer.WriteString("**")
+        buffer.WriteString(coll.Commands[0])
+        buffer.WriteString(":** ")
+        for idx, snd := range coll.Sounds {
+            buffer.WriteString(snd.Name)
+            if(idx != len(coll.Sounds)-1) {
+                buffer.WriteString(", ")
+            }
+        }
+        buffer.WriteString("\n")
+    }
+    return buffer.String();
+}
+
 
 // Create a Sound struct
 func createSound(Name string, Weight int, PartDelay int) *Sound {
@@ -785,6 +894,14 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !shardContains(guild.ID) {
 		return
 	}
+
+    for _, tcoll := range TEXTCMDS {
+        for _, cmd := range tcoll.Commands {
+            if scontains(parts[0], cmd) {
+                s.ChannelMessageSend(m.ChannelID, tcoll.Text) 
+            }
+        }
+    }
 
 	// Find the collection for the command we got
 	for _, coll := range COLLECTIONS {

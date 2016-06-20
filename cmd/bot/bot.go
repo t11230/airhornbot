@@ -99,6 +99,15 @@ var AIRHORN *SoundCollection = &SoundCollection{
 		createSound("truck", 10, 250),
 	},
 }
+var OVERWATCH *SoundCollection = &SoundCollection{
+	Prefix: "overwatch",
+	Commands:[]string{
+		"!overwatch",
+	},
+	Sounds: []*Sound{
+		createSound("nerfthis", 1000,250),
+	},
+}
 
 var KHALED *SoundCollection = &SoundCollection{
 	Prefix:    "another",

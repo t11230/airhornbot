@@ -102,11 +102,11 @@ var AIRHORN *SoundCollection = &SoundCollection{
 var OVERWATCH *SoundCollection = &SoundCollection{
 	Prefix: "owult",
 	Commands:[]string{
-		"!owult",
+		"!overwatch",
 	},
 	Sounds: []*Sound{
-		createSound("nerfthis", 1000,250),
-		
+		createSound("dva_enemy", 1000,250),
+		createSound("mccree_enemy", 1000,250),
 	},
 }
 
@@ -197,6 +197,7 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	ETHAN,
 	COW,
 	BIRTHDAY,
+	OVERWATCH,
 }
 
 // Create a Sound struct

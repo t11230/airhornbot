@@ -100,12 +100,13 @@ var AIRHORN *SoundCollection = &SoundCollection{
 	},
 }
 var OVERWATCH *SoundCollection = &SoundCollection{
-	Prefix: "overwatch",
+	Prefix: "owult",
 	Commands:[]string{
-		"!overwatch",
+		"!owult",
 	},
 	Sounds: []*Sound{
 		createSound("nerfthis", 1000,250),
+		
 	},
 }
 

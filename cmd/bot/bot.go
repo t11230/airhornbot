@@ -147,8 +147,8 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		// createSound("torbjorn_friendly",1000,250),
 		// createSound("tracer_enemy",1000,250),//enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
 		// createSound("tracer_friendly",1000,250),//doesn't exist?
-		createSound("widowmaker_enemy",1000,250),//consider shortening to widow?
-		createSound("widowmaker_friendly",1000,250),//same as above
+		createSound("widow_enemy",1000,250),//consider shortening to widow?
+		createSound("widow_friendly",1000,250),//same as above
 		createSound("zarya_enemy",1000,250),
 		createSound("zarya_friendly",1000,250),
 		createSound("zenyatta_enemy",1000,250),

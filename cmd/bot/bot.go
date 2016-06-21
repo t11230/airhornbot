@@ -110,7 +110,7 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		createSound("dva_enemy", 1000,250),
 		createSound("dva_friendly",1000,250),
 		createSound("genji_enemy",1000,250),
-		createSound("genji_friendly",1000,250)
+		createSound("genji_friendly",1000,250),
 		createSound("hanzo_enemy",1000,250),
 		createSound("hanzo_enemy_wolf",1000,250),
 		createSound("hanzo_friendly",1000,250),

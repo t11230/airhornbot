@@ -154,6 +154,8 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		createSound("zenyatta_enemy",1000,250),
 		createSound("zenyatta_friendly",1000,250),
 
+
+		createSound("dva_;)",1000,250),//should be in its own sound repository
 		//skipping tracer for now
 
 		//missing:

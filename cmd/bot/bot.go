@@ -101,61 +101,61 @@ var AIRHORN *SoundCollection = &SoundCollection{
 }
 var OVERWATCH *SoundCollection = &SoundCollection{
 	Prefix: "owult",
-	Commands:[]string{
+	Commands: []string{
 		"!overwatch",
 	},
 	Sounds: []*Sound{
 		//looking for sounds on
 		//http://rpboyer15.github.io/sounds-of-overwatch/
-		createSound("bastion_enemy", 1000,250),
-		createSound("bastion_friendly", 1000,250),
-		createSound("dva_enemy", 1000,250),
-		createSound("dva_friendly",1000,250),
-		createSound("genji_enemy",1000,250),
-		createSound("genji_friendly",1000,250),
-		createSound("hanzo_enemy",1000,250),
-		createSound("hanzo_enemy_wolf",1000,250),
-		createSound("hanzo_friendly",1000,250),
-		createSound("hanzo_friendly_wolf",1000,250),
-		createSound("junkrat_enemy",1000,250),
-		createSound("junkrat_friendly",1000,250),
-		createSound("lucio_friendly",1000,250),
-		createSound("lucio_enemy",1000,250),
-		createSound("mccree_enemy", 1000,250),
-		createSound("mccree_friendly",1000,250),
-		createSound("mei_friendly",1000,250),
+		createSound("bastion_enemy", 1000, 250),
+		createSound("bastion_friendly", 1000, 250),
+		createSound("dva_enemy", 1000, 250),
+		createSound("dva_friendly", 1000, 250),
+		createSound("genji_enemy", 1000, 250),
+		createSound("genji_friendly", 1000, 250),
+		createSound("hanzo_enemy", 1000, 250),
+		createSound("hanzo_enemy_wolf", 1000, 250),
+		createSound("hanzo_friendly", 1000, 250),
+		createSound("hanzo_friendly_wolf", 1000, 250),
+		createSound("junkrat_enemy", 1000, 250),
+		createSound("junkrat_friendly", 1000, 250),
+		createSound("lucio_friendly", 1000, 250),
+		createSound("lucio_enemy", 1000, 250),
+		createSound("mccree_enemy", 1000, 250),
+		createSound("mccree_friendly", 1000, 250),
+		createSound("mei_friendly", 1000, 250),
 		// //there may be multiple mei friendly ult lines
 		// //from this: https://www.reddit.com/r/Overwatch/comments/4fdw0z/is_that_ultimate_friendly_or_hostile/
-		createSound("mei_enemy",1000,250),
-		createSound("mercy_friendly",1000,250),
-		createSound("mercy_friendly_devil",1000,250),
-		createSound("mercy_friendly_valkyrie",1000,250),
-		createSound("mercy_enemy",1000,250),
-		createSound("pharah_enemy",1000,250),
-		createSound("pharah_friendly",1000,250),
-		createSound("reaper_enemy",1000,250),//not found
-		createSound("reaper_friendly",1000,250),
-		createSound("reinhardt_friendly",1000,250),//doesn't exist?
-		createSound("reinhardt_enemy",1000,250),//consider shortening to ?????
-		createSound("roadhog_enemy",1000,250),
-		createSound("roadhog_friendly",1000,250),
-		createSound("76_enemy",1000,250),//consider shortening to s76, s:76?
-		createSound("76_friendly",1000,250),
-		createSound("symmetra_friendly",1000,250),
-		createSound("symmetra_enemy",1000,250),//each hero has a line for when they see an enemy symmetra turret. not sure how to implement
-		createSound("torbjorn_enemy",1000,250),//consider shortening to torb?
-		createSound("torbjorn_friendly",1000,250),
-		createSound("tracer_enemy",1000,250),//enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
-		createSound("tracer_friendly",1000,250),//doesn't exist?
-		createSound("widow_enemy",1000,250),//consider shortening to widow?
-		createSound("widow_friendly",1000,250),//same as above
-		createSound("zarya_enemy",1000,250),
-		createSound("zarya_friendly",1000,250),
-		createSound("zenyatta_enemy",1000,250),
-		createSound("zenyatta_friendly",1000,250),
+		createSound("mei_enemy", 1000, 250),
+		createSound("mercy_friendly", 1000, 250),
+		createSound("mercy_friendly_devil", 1000, 250),
+		createSound("mercy_friendly_valkyrie", 1000, 250),
+		createSound("mercy_enemy", 1000, 250),
+		createSound("pharah_enemy", 1000, 250),
+		createSound("pharah_friendly", 1000, 250),
+		createSound("reaper_enemy", 1000, 250), //not found
+		createSound("reaper_friendly", 1000, 250),
+		createSound("reinhardt_friendly", 1000, 250), //doesn't exist?
+		createSound("reinhardt_enemy", 1000, 250),    //consider shortening to ?????
+		createSound("roadhog_enemy", 1000, 250),
+		createSound("roadhog_friendly", 1000, 250),
+		createSound("76_enemy", 1000, 250), //consider shortening to s76, s:76?
+		createSound("76_friendly", 1000, 250),
+		createSound("symmetra_friendly", 1000, 250),
+		createSound("symmetra_enemy", 1000, 250), //each hero has a line for when they see an enemy symmetra turret. not sure how to implement
+		createSound("torbjorn_enemy", 1000, 250), //consider shortening to torb?
+		createSound("torbjorn_friendly", 1000, 250),
+		createSound("tracer_enemy", 1000, 250),    //enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
+		createSound("tracer_friendly", 1000, 250), //doesn't exist?
+		createSound("widow_enemy", 1000, 250),     //consider shortening to widow?
+		createSound("widow_friendly", 1000, 250),  //same as above
+		createSound("zarya_enemy", 1000, 250),
+		createSound("zarya_friendly", 1000, 250),
+		createSound("zenyatta_enemy", 1000, 250),
+		createSound("zenyatta_friendly", 1000, 250),
 
-
-		createSound("dva_;)",1000,250),//should be in its own sound repository
+		createSound("dva_;)", 1000, 250), //should be in its own sound repository
+		createSound("anyong", 1000, 250),
 		//skipping tracer for now
 
 		//missing:
@@ -173,8 +173,6 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		//Torbjorn f
 		//Tracer e/f?
 		//Zenyatta f
-
-
 
 	},
 }

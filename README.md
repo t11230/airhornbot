@@ -9,8 +9,8 @@ Airhorn Bot has two components, a bot client that handles the playing of loyal a
 
 **First install the bot:**
 ```
-go get github.com/hammerandchisel/airhornbot/cmd/bot
-go install github.com/hammerandchisel/airhornbot/cmd/bot
+go get github.com/noisemaster/airhornbot/cmd/bot
+go install github.com/noisemaster/airhornbot/cmd/bot
 ```
  **Then run the following command:**
 
@@ -19,7 +19,7 @@ bot -r "localhost:6379" -t "MY_BOT_ACCOUNT_TOKEN" -o OWNER_ID
 ```
 
 ### Running the Web Server
-First install the webserver: `go install github.com/hammerandchisel/airhornbot`, then run `make static`, finally run:
+First install the webserver: `go install github.com/noisemaster/airhornbot`, then run `make static`, finally run:
 
 ```
 ./airhornweb -r "localhost:6379" -i MY_APPLICATION_ID -s 'MY_APPLICATION_SECRET"
@@ -29,3 +29,6 @@ Note, the webserver requires a redis instance to track statistics
 
 ## Thanks
 Thanks to the awesome (one might describe them as smart... loyal... appreciative...) [iopred](https://github.com/iopred) and [bwmarrin](https://github.com/bwmarrin/discordgo) for helping code review the initial release.
+
+## Sounds added to this fork
+WIP: Overwatch ultimate sounds (currently missing a few of them)

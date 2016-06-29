@@ -3,7 +3,6 @@ bot/bot
 app/settings.py
 *.db
 .DS_Store
-bot
 web
 requests.log
 dist

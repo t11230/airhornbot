@@ -1,23 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"flag"
-	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"os/signal"
-	"runtime"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
-	"github.com/dustin/go-humanize"
 	redis "gopkg.in/redis.v3"
 )
 
@@ -28,502 +21,44 @@ var (
 	// Redis client connection (used for stats)
 	rcli *redis.Client
 
-	// Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
-	queues map[string]chan *Play = make(map[string]chan *Play)
-
 	// Sound encoding settings
 	BITRATE        = 128
 	MAX_QUEUE_SIZE = 6
+
+	// Prefix for chat commands
+	PREFIX = "!!"
 
 	// Owner
 	OWNER string
 )
 
-// Play represents an individual use of the !airhorn command
-type Play struct {
-	GuildID   string
-	ChannelID string
-	UserID    string
-	Sound     *Sound
-
-	// The next play to occur after this, only used for chaining sounds like anotha
-	Next *Play
-
-	// If true, this was a forced play using a specific airhorn sound name
-	Forced bool
-}
-
-type SoundCollection struct {
-	Prefix    string
-	Commands  []string
-	Sounds    []*Sound
-	ChainWith *SoundCollection
-
-	soundRange int
-}
-
-// Sound represents a sound clip
-type Sound struct {
-	Name string
-
-	// Weight adjust how likely it is this song will play, higher = more likely
-	Weight int
-
-	// Delay (in milliseconds) for the bot to wait before sending the disconnect request
-	PartDelay int
-
-	// Buffer to store encoded PCM packets
-	buffer [][]byte
-}
-
-// Array of all the sounds we have
-var AIRHORN *SoundCollection = &SoundCollection{
-	Prefix: "airhorn",
-	Commands: []string{
-		"!airhorn",
-	},
-	Sounds: []*Sound{
-		createSound("default", 1000, 250),
-		createSound("reverb", 800, 250),
-		createSound("spam", 800, 0),
-		createSound("tripletap", 800, 250),
-		createSound("fourtap", 800, 250),
-		createSound("distant", 500, 250),
-		createSound("echo", 500, 250),
-		createSound("clownfull", 250, 250),
-		createSound("clownshort", 250, 250),
-		createSound("clownspam", 250, 0),
-		createSound("highfartlong", 200, 250),
-		createSound("highfartshort", 200, 250),
-		createSound("midshort", 100, 250),
-		createSound("truck", 10, 250),
-	},
-}
-var OVERWATCH *SoundCollection = &SoundCollection{
-	Prefix: "owult",
-	Commands: []string{
-		"!overwatch",
-	},
-	Sounds: []*Sound{
-		//looking for sounds on
-		//http://rpboyer15.github.io/sounds-of-overwatch/
-		createSound("bastion_enemy", 1000, 250),
-		createSound("bastion_friendly", 1000, 250),
-		createSound("dva_enemy", 1000, 250),
-		createSound("dva_friendly", 1000, 250),
-		createSound("genji_enemy", 1000, 250),
-		createSound("genji_friendly", 1000, 250),
-		createSound("hanzo_enemy", 1000, 250),
-		createSound("hanzo_enemy_wolf", 1000, 250),
-		createSound("hanzo_friendly", 1000, 250),
-		createSound("hanzo_friendly_wolf", 1000, 250),
-		createSound("junkrat_enemy", 1000, 250),
-		createSound("junkrat_friendly", 1000, 250),
-		createSound("lucio_friendly", 1000, 250),
-		createSound("lucio_enemy", 1000, 250),
-		createSound("mccree_enemy", 1000, 250),
-		createSound("mccree_friendly", 1000, 250),
-		createSound("mei_friendly", 1000, 250),
-		// //there may be multiple mei friendly ult lines
-		// //from this: https://www.reddit.com/r/Overwatch/comments/4fdw0z/is_that_ultimate_friendly_or_hostile/
-		createSound("mei_enemy", 1000, 250),
-		createSound("mercy_friendly", 1000, 250),
-		createSound("mercy_friendly_devil", 1000, 250),
-		createSound("mercy_friendly_valkyrie", 1000, 250),
-		createSound("mercy_enemy", 1000, 250),
-		createSound("pharah_enemy", 1000, 250),
-		createSound("pharah_friendly", 1000, 250),
-		createSound("reaper_enemy", 1000, 250), //not found
-		createSound("reaper_friendly", 1000, 250),
-		createSound("reinhardt_friendly", 1000, 250), //doesn't exist?
-		createSound("reinhardt_enemy", 1000, 250),    //consider shortening to ?????
-		createSound("roadhog_enemy", 1000, 250),
-		createSound("roadhog_friendly", 1000, 250),
-		createSound("76_enemy", 1000, 250), //consider shortening to s76, s:76?
-		createSound("76_friendly", 1000, 250),
-		createSound("symmetra_friendly", 1000, 250),
-		createSound("symmetra_enemy", 1000, 250), //each hero has a line for when they see an enemy symmetra turret. not sure how to implement
-		createSound("torbjorn_enemy", 1000, 250), //consider shortening to torb?
-		createSound("torbjorn_friendly", 1000, 250),
-		createSound("tracer_enemy", 1000, 250),    //enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
-		createSound("tracer_friendly", 1000, 250), //doesn't exist?
-		createSound("widow_enemy", 1000, 250),     //consider shortening to widow?
-		createSound("widow_friendly", 1000, 250),  //same as above
-		createSound("zarya_enemy", 1000, 250),
-		createSound("zarya_friendly", 1000, 250),
-		createSound("zenyatta_enemy", 1000, 250),
-		createSound("zenyatta_friendly", 1000, 250),
-
-		createSound("dva_;)", 1000, 250), //should be in its own sound repository
-		createSound("anyong", 1000, 250),
-		//skipping tracer for now
-
-		//missing:
-		//Bastion e/f
-		//D.Va f
-		//Genji e
-		//Hanzo ew/fw
-		//Junkrat f
-		//Mercy e/f/fd/fv (have friendly, but different voice actress)
-		//Pharah f
-		//Reaper e
-		//Roadhog e/f
-		//Soldier:76 f
-		//Symmetra e???
-		//Torbjorn f
-		//Tracer e/f?
-		//Zenyatta f
-
-	},
-}
-
-var KHALED *SoundCollection = &SoundCollection{
-	Prefix:    "another",
-	ChainWith: AIRHORN,
-	Commands: []string{
-		"!anotha",
-		"!anothaone",
-	},
-	Sounds: []*Sound{
-		createSound("one", 1, 250),
-		createSound("one_classic", 1, 250),
-		createSound("one_echo", 1, 250),
-	},
-}
-
-var CENA *SoundCollection = &SoundCollection{
-	Prefix: "jc",
-	Commands: []string{
-		"!johncena",
-		"!cena",
-	},
-	Sounds: []*Sound{
-		createSound("airhorn", 1, 250),
-		createSound("echo", 1, 250),
-		createSound("full", 1, 250),
-		createSound("jc", 1, 250),
-		createSound("nameis", 1, 250),
-		createSound("spam", 1, 250),
-	},
-}
-
-var ETHAN *SoundCollection = &SoundCollection{
-	Prefix: "ethan",
-	Commands: []string{
-		"!ethan",
-		"!eb",
-		"!ethanbradberry",
-		"!h3h3",
-	},
-	Sounds: []*Sound{
-		createSound("areyou_classic", 100, 250),
-		createSound("areyou_condensed", 100, 250),
-		createSound("areyou_crazy", 100, 250),
-		createSound("areyou_ethan", 100, 250),
-		createSound("classic", 100, 250),
-		createSound("echo", 100, 250),
-		createSound("high", 100, 250),
-		createSound("slowandlow", 100, 250),
-		createSound("cuts", 30, 250),
-		createSound("beat", 30, 250),
-		createSound("sodiepop", 1, 250),
-	},
-}
-
-var COW *SoundCollection = &SoundCollection{
-	Prefix: "cow",
-	Commands: []string{
-		"!stan",
-		"!stanislav",
-	},
-	Sounds: []*Sound{
-		createSound("herd", 10, 250),
-		createSound("moo", 10, 250),
-		createSound("x3", 1, 250),
-	},
-}
-
-var BIRTHDAY *SoundCollection = &SoundCollection{
-	Prefix: "birthday",
-	Commands: []string{
-		"!birthday",
-		"!bday",
-	},
-	Sounds: []*Sound{
-		createSound("horn", 50, 250),
-		createSound("horn3", 30, 250),
-		createSound("sadhorn", 25, 250),
-		createSound("weakhorn", 25, 250),
-	},
-}
-
-var COLLECTIONS []*SoundCollection = []*SoundCollection{
-	AIRHORN,
-	KHALED,
-	CENA,
-	ETHAN,
-	COW,
-	BIRTHDAY,
-	OVERWATCH,
-}
-
-// Create a Sound struct
-func createSound(Name string, Weight int, PartDelay int) *Sound {
-	return &Sound{
-		Name:      Name,
-		Weight:    Weight,
-		PartDelay: PartDelay,
-		buffer:    make([][]byte, 0),
-	}
-}
-
-func (sc *SoundCollection) Load() {
-	for _, sound := range sc.Sounds {
-		sc.soundRange += sound.Weight
-		sound.Load(sc)
-	}
-}
-
-func (s *SoundCollection) Random() *Sound {
-	var (
-		i      int
-		number int = randomRange(0, s.soundRange)
-	)
-
-	for _, sound := range s.Sounds {
-		i += sound.Weight
-
-		if number < i {
-			return sound
-		}
-	}
-	return nil
-}
-
-// Load attempts to load an encoded sound file from disk
-// DCA files are pre-computed sound files that are easy to send to Discord.
-// If you would like to create your own DCA files, please use:
-// https://github.com/nstafie/dca-rs
-// eg: dca-rs --raw -i <input wav file> > <output file>
-func (s *Sound) Load(c *SoundCollection) error {
-	path := fmt.Sprintf("audio/%v_%v.dca", c.Prefix, s.Name)
-
-	file, err := os.Open(path)
-
-	if err != nil {
-		fmt.Println("error opening dca file :", err)
-		return err
-	}
-
-	var opuslen int16
-
-	for {
-		// read opus frame length from dca file
-		err = binary.Read(file, binary.LittleEndian, &opuslen)
-
-		// If this is the end of the file, just return
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			return nil
-		}
-
-		if err != nil {
-			fmt.Println("error reading from dca file :", err)
-			return err
-		}
-
-		// read encoded pcm from dca file
-		InBuf := make([]byte, opuslen)
-		err = binary.Read(file, binary.LittleEndian, &InBuf)
-
-		// Should not be any end of file errors
-		if err != nil {
-			fmt.Println("error reading from dca file :", err)
-			return err
-		}
-
-		// append encoded pcm data to the buffer
-		s.buffer = append(s.buffer, InBuf)
-	}
-}
-
-// Plays this sound over the specified VoiceConnection
-func (s *Sound) Play(vc *discordgo.VoiceConnection) {
-	vc.Speaking(true)
-	defer vc.Speaking(false)
-
-	for _, buff := range s.buffer {
-		vc.OpusSend <- buff
-	}
-}
-
-// Attempts to find the current users voice channel inside a given guild
-func getCurrentVoiceChannel(user *discordgo.User, guild *discordgo.Guild) *discordgo.Channel {
-	for _, vs := range guild.VoiceStates {
-		if vs.UserID == user.ID {
-			channel, _ := discord.State.Channel(vs.ChannelID)
-			return channel
-		}
-	}
-	return nil
-}
-
-// Returns a random integer between min and max
-func randomRange(min, max int) int {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return rand.Intn(max-min) + min
-}
-
-// Prepares a play
-func createPlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) *Play {
-	// Grab the users voice channel
-	channel := getCurrentVoiceChannel(user, guild)
-	if channel == nil {
-		log.WithFields(log.Fields{
-			"user":  user.ID,
-			"guild": guild.ID,
-		}).Warning("Failed to find channel to play sound in")
-		return nil
-	}
-
-	// Create the play
-	play := &Play{
-		GuildID:   guild.ID,
-		ChannelID: channel.ID,
-		UserID:    user.ID,
-		Sound:     sound,
-		Forced:    true,
-	}
-
-	// If we didn't get passed a manual sound, generate a random one
-	if play.Sound == nil {
-		play.Sound = coll.Random()
-		play.Forced = false
-	}
-
-	// If the collection is a chained one, set the next sound
-	if coll.ChainWith != nil {
-		play.Next = &Play{
-			GuildID:   play.GuildID,
-			ChannelID: play.ChannelID,
-			UserID:    play.UserID,
-			Sound:     coll.ChainWith.Random(),
-			Forced:    play.Forced,
-		}
-	}
-
-	return play
-}
-
-// Prepares and enqueues a play into the ratelimit/buffer guild queue
-func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) {
-	play := createPlay(user, guild, coll, sound)
-	if play == nil {
-		return
-	}
-
-	// Check if we already have a connection to this guild
-	//   yes, this isn't threadsafe, but its "OK" 99% of the time
-	_, exists := queues[guild.ID]
-
-	if exists {
-		if len(queues[guild.ID]) < MAX_QUEUE_SIZE {
-			queues[guild.ID] <- play
-		}
-	} else {
-		queues[guild.ID] = make(chan *Play, MAX_QUEUE_SIZE)
-		playSound(play, nil)
-	}
-}
-
-func trackSoundStats(play *Play) {
-	if rcli == nil {
-		return
-	}
-
-	_, err := rcli.Pipelined(func(pipe *redis.Pipeline) error {
-		var baseChar string
-
-		if play.Forced {
-			baseChar = "f"
-		} else {
-			baseChar = "a"
-		}
-
-		base := fmt.Sprintf("airhorn:%s", baseChar)
-		pipe.Incr("airhorn:total")
-		pipe.Incr(fmt.Sprintf("%s:total", base))
-		pipe.Incr(fmt.Sprintf("%s:sound:%s", base, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:user:%s:sound:%s", base, play.UserID, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:guild:%s:sound:%s", base, play.GuildID, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:guild:%s:chan:%s:sound:%s", base, play.GuildID, play.ChannelID, play.Sound.Name))
-		pipe.SAdd(fmt.Sprintf("%s:users", base), play.UserID)
-		pipe.SAdd(fmt.Sprintf("%s:guilds", base), play.GuildID)
-		pipe.SAdd(fmt.Sprintf("%s:channels", base), play.ChannelID)
-		return nil
-	})
-
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Warning("Failed to track stats in redis")
-	}
-}
-
-// Play a sound
-func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
-	log.WithFields(log.Fields{
-		"play": play,
-	}).Info("Playing sound")
-
-	if vc == nil {
-		vc, err = discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
-		// vc.Receive = false
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Failed to play sound")
-			delete(queues, play.GuildID)
-			return err
-		}
-	}
-
-	// If we need to change channels, do that now
-	if vc.ChannelID != play.ChannelID {
-		vc.ChangeChannel(play.ChannelID, false, false)
-		time.Sleep(time.Millisecond * 125)
-	}
-
-	// Track stats for this play in redis
-	go trackSoundStats(play)
-
-	// Sleep for a specified amount of time before playing the sound
-	time.Sleep(time.Millisecond * 32)
-
-	// Play the sound
-	play.Sound.Play(vc)
-
-	// If this is chained, play the chained sound
-	if play.Next != nil {
-		playSound(play.Next, vc)
-	}
-
-	// If there is another song in the queue, recurse and play that
-	if len(queues[play.GuildID]) > 0 {
-		play := <-queues[play.GuildID]
-		playSound(play, vc)
-		return nil
-	}
-
-	// If the queue is empty, delete it
-	time.Sleep(time.Millisecond * time.Duration(play.Sound.PartDelay))
-	delete(queues, play.GuildID)
-	vc.Disconnect()
-	return nil
+func init() {
+	// Seed the random number generator.
+	rand.Seed(time.Now().UnixNano()) 
 }
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
-	s.UpdateStatus(0, "github.com/noisemaster/airhornbot")
+	s.UpdateStatus(0, "Overwatch")
+}
+
+func processGameplayLoop(ticker *time.Ticker) {
+    for {
+    	select {
+    	case <- ticker.C:        		
+    		var processedUsers []string
+        	for _, g := range discord.State.Guilds {
+	        	for _, p := range g.Presences {
+	        		if p.Game != nil && len(p.Game.Name) > 0 &&
+	        				!utilStringInSlice(p.User.ID, processedUsers) {
+
+	        			processedUsers = append(processedUsers, p.User.ID)
+	            		dbIncGameEntry(p.User.ID, p.Game.Name, 60)
+	            	}
+	            }
+	        }
+    	}
+    }
 }
 
 func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
@@ -539,96 +74,6 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 	}
 }
 
-func scontains(key string, options ...string) bool {
-	for _, item := range options {
-		if item == key {
-			return true
-		}
-	}
-	return false
-}
-
-func calculateAirhornsPerSecond(cid string) {
-	current, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-	time.Sleep(time.Second * 10)
-	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
-}
-
-func displayBotStats(cid string) {
-	stats := runtime.MemStats{}
-	runtime.ReadMemStats(&stats)
-
-	users := 0
-	for _, guild := range discord.State.Ready.Guilds {
-		users += len(guild.Members)
-	}
-
-	w := &tabwriter.Writer{}
-	buf := &bytes.Buffer{}
-
-	w.Init(buf, 0, 4, 0, ' ', 0)
-	fmt.Fprintf(w, "```\n")
-	fmt.Fprintf(w, "Discordgo: \t%s\n", discordgo.VERSION)
-	fmt.Fprintf(w, "Go: \t%s\n", runtime.Version())
-	fmt.Fprintf(w, "Memory: \t%s / %s (%s total allocated)\n", humanize.Bytes(stats.Alloc), humanize.Bytes(stats.Sys), humanize.Bytes(stats.TotalAlloc))
-	fmt.Fprintf(w, "Tasks: \t%d\n", runtime.NumGoroutine())
-	fmt.Fprintf(w, "Servers: \t%d\n", len(discord.State.Ready.Guilds))
-	fmt.Fprintf(w, "Users: \t%d\n", users)
-	fmt.Fprintf(w, "```\n")
-	w.Flush()
-	discord.ChannelMessageSend(cid, buf.String())
-}
-
-func utilSumRedisKeys(keys []string) int {
-	results := make([]*redis.StringCmd, 0)
-
-	rcli.Pipelined(func(pipe *redis.Pipeline) error {
-		for _, key := range keys {
-			results = append(results, pipe.Get(key))
-		}
-		return nil
-	})
-
-	var total int
-	for _, i := range results {
-		t, _ := strconv.Atoi(i.Val())
-		total += t
-	}
-
-	return total
-}
-
-func displayUserStats(cid, uid string) {
-	keys, err := rcli.Keys(fmt.Sprintf("airhorn:*:user:%s:sound:*", uid)).Result()
-	if err != nil {
-		return
-	}
-
-	totalAirhorns := utilSumRedisKeys(keys)
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
-}
-
-func displayServerStats(cid, sid string) {
-	keys, err := rcli.Keys(fmt.Sprintf("airhorn:*:guild:%s:sound:*", sid)).Result()
-	if err != nil {
-		return
-	}
-
-	totalAirhorns := utilSumRedisKeys(keys)
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
-}
-
-func utilGetMentioned(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.User {
-	for _, mention := range m.Mentions {
-		if mention.ID != s.State.Ready.User.ID {
-			return mention
-		}
-	}
-	return nil
-}
-
 func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs string) {
 	count, _ := strconv.Atoi(cs)
 	discord.ChannelMessageSend(cid, ":ok_hand:"+strings.Repeat(":trumpet:", count))
@@ -638,7 +83,7 @@ func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs st
 		return
 	}
 
-	play := createPlay(user, guild, AIRHORN, nil)
+	play := sndCreatePlay(user, guild, AIRHORN, nil)
 	vc, err := discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, true, true)
 	if err != nil {
 		return
@@ -653,31 +98,47 @@ func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs st
 
 // Handles bot operator messages, should be refactored (lmao)
 func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, parts []string, g *discordgo.Guild) {
-	if scontains(parts[1], "status") {
-		displayBotStats(m.ChannelID)
-	} else if scontains(parts[1], "stats") {
+	if utilScontains(parts[1], "status") {
+		rdDisplayBotStats(m.ChannelID)
+
+	} else if utilScontains(parts[1], "stats") {
 		if len(m.Mentions) >= 2 {
-			displayUserStats(m.ChannelID, utilGetMentioned(s, m).ID)
+			rdDisplayUserStats(m.ChannelID, utilGetMentioned(s, m).ID)
 		} else if len(parts) >= 3 {
-			displayUserStats(m.ChannelID, parts[2])
+			rdDisplayUserStats(m.ChannelID, parts[2])
 		} else {
-			displayServerStats(m.ChannelID, g.ID)
+			rdDisplayServerStats(m.ChannelID, g.ID)
 		}
-	} else if scontains(parts[1], "bomb") && len(parts) >= 4 {
+
+	} else if utilScontains(parts[1], "bomb") && len(parts) >= 4 {
 		airhornBomb(m.ChannelID, g, utilGetMentioned(s, m), parts[3])
-	} else if scontains(parts[1], "aps") {
+
+	} else if utilScontains(parts[1], "aps") {
 		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-		go calculateAirhornsPerSecond(m.ChannelID)
+		go rdCalculateAirhornsPerSecond(m.ChannelID)
+
+	} else if utilScontains(parts[1], "save_messages") && len(parts) >= 4 {
+		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+		go mkFetchAndSaveMessages(m.ChannelID, g, m.Author, parts[2], parts[3])
+
+	} else if utilScontains(parts[1], "generate_chain") && len(parts) >= 4 {
+		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+		go mkGenerateChain(m.ChannelID, g, m.Author, parts[2], parts[3])
+
+	} else if utilScontains(parts[1], "load_chain") && len(parts) >= 3 {
+		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+		go mkLoadChain(m.ChannelID, g, m.Author, parts[2])
+
+	} else if utilScontains(parts[1], "get_message") && len(parts) >= 3 {
+		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+		go mkGetMessage(m.ChannelID, g, m.Author, parts[2])
 	}
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if len(m.Content) <= 0 || (m.Content[0] != '!' && len(m.Mentions) < 1) {
+	if len(m.Content) <= 0 {
 		return
 	}
-
-	msg := strings.Replace(m.ContentWithMentionsReplaced(), s.State.Ready.User.Username, "username", 1)
-	parts := strings.Split(strings.ToLower(msg), " ")
 
 	channel, _ := discord.State.Channel(m.ChannelID)
 	if channel == nil {
@@ -698,6 +159,20 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// If we have a message not starting with "!", then handle markov stuff
+	if (!strings.HasPrefix(m.Content, "!") && len(m.Mentions) < 1) {
+		mkWriteMessage(guild, m.Content)
+		rando := rand.Intn(100)
+		if rando < 10 {
+			log.Printf("Sending markov message")
+			go mkGetMessage(m.ChannelID, guild, m.Author, "1")
+		}
+		return
+	}
+
+	msg := strings.Replace(m.ContentWithMentionsReplaced(), s.State.Ready.User.Username, "username", 1)
+	parts := strings.Split(strings.ToLower(msg), " ")
+
 	// If this is a mention, it should come from the owner (otherwise we don't care)
 	if len(m.Mentions) > 0 && m.Author.ID == OWNER && len(parts) > 0 {
 		mentioned := false
@@ -714,9 +189,34 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// Filter out commands for airhornbot
+	if (!strings.HasPrefix(m.Content, PREFIX)) {
+		log.Printf("Filtering out airhornbot command")
+		return
+	}
+
+	// // If it's not relevant to our shard, just exit
+	// if !shardContains(guild.ID) {
+	// 	return
+	// }
+
+	baseCommand := strings.Replace(parts[0], PREFIX, "", 1)
+
+	if utilScontains(baseCommand, "text") {
+		if len(parts) > 1 {
+			go mkGetMessage(m.ChannelID, guild, m.Author, parts[1])
+		} else {
+			go mkGetMessage(m.ChannelID, guild, m.Author, "1")
+		}
+		return
+	} else if utilScontains(baseCommand, "stats") {
+		go gpPrintStats(m.ChannelID, m.Author)
+		return
+	}
+
 	// Find the collection for the command we got
 	for _, coll := range COLLECTIONS {
-		if scontains(parts[0], coll.Commands...) {
+		if utilScontains(baseCommand, coll.Commands...) {
 
 			// If they passed a specific sound effect, find and select that (otherwise play nothing)
 			var sound *Sound
@@ -732,18 +232,43 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}
 
-			go enqueuePlay(m.Author, guild, coll, sound)
+			go sndEnqueuePlay(m.Author, guild, coll, sound)
 			return
 		}
 	}
+}
+
+// Handle updating of presences in the current session, because the API doesnt...
+func onPresenceUpdate(s *discordgo.Session, u *discordgo.PresenceUpdate) {
+	if s == nil {
+		return
+	}
+
+	guild, err := s.Guild(u.GuildID)
+	if err != nil {
+		return
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	for i, p := range guild.Presences {
+		if p.User.ID == u.User.ID {
+			guild.Presences[i].Status = u.Status
+			guild.Presences[i].Game = u.Game
+			return
+		}
+	}
+
+	return
 }
 
 func main() {
 	var (
 		Token      = flag.String("t", "", "Discord Authentication Token")
 		Redis      = flag.String("r", "", "Redis Connection String")
-		Shard      = flag.String("s", "", "Shard ID")
-		ShardCount = flag.String("c", "", "Number of shards")
+		// Shard      = flag.String("s", "", "Shard ID")
+		// ShardCount = flag.String("c", "", "Number of shards")
 		Owner      = flag.String("o", "", "Owner ID")
 		err        error
 	)
@@ -773,6 +298,8 @@ func main() {
 		}
 	}
 
+	dbOpen("./Drumpf.db")
+
 	// Create a discord session
 	log.Info("Starting discord session...")
 	discord, err = discordgo.New(*Token)
@@ -784,16 +311,17 @@ func main() {
 	}
 
 	// Set sharding info
-	discord.ShardID, _ = strconv.Atoi(*Shard)
-	discord.ShardCount, _ = strconv.Atoi(*ShardCount)
+	// discord.ShardID, _ = strconv.Atoi(*Shard)
+	// discord.ShardCount, _ = strconv.Atoi(*ShardCount)
 
-	if discord.ShardCount <= 0 {
-		discord.ShardCount = 1
-	}
+	// if discord.ShardCount <= 0 {
+	// 	discord.ShardCount = 1
+	// }
 
 	discord.AddHandler(onReady)
 	discord.AddHandler(onGuildCreate)
 	discord.AddHandler(onMessageCreate)
+	discord.AddHandler(onPresenceUpdate)
 
 	err = discord.Open()
 	if err != nil {
@@ -805,6 +333,10 @@ func main() {
 
 	// We're running!
 	log.Info("AIRHORNBOT is ready to horn it up.")
+
+	log.Info("Setting up Game watch tick")
+	ticker := time.NewTicker(time.Second * 60)
+    go processGameplayLoop(ticker)
 
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)

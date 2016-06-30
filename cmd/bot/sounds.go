@@ -164,14 +164,14 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		// sndCreateSound("bastion_friendly", 1000, 250),
 		sndCreateSound("dva_enemy", 1000, 250),
 		// sndCreateSound("dva_friendly", 1000, 250),
-		// sndCreateSound("genji_enemy", 1000, 250),
+		sndCreateSound("genji_enemy", 1000, 250),
 		sndCreateSound("genji_friendly", 1000, 250),
 		sndCreateSound("hanzo_enemy", 1000, 250),
 		// sndCreateSound("hanzo_enemy_wolf", 1000, 250),
 		sndCreateSound("hanzo_friendly", 1000, 250),
 		// sndCreateSound("hanzo_friendly_wolf", 1000, 250),
 		sndCreateSound("junkrat_enemy", 1000, 250),
-		// sndCreateSound("junkrat_friendly", 1000, 250),
+		sndCreateSound("junkrat_friendly", 1000, 250),
 		sndCreateSound("lucio_friendly", 1000, 250),
 		sndCreateSound("lucio_enemy", 1000, 250),
 		sndCreateSound("mccree_enemy", 1000, 250),
@@ -198,12 +198,12 @@ var OVERWATCH *SoundCollection = &SoundCollection{
 		// sndCreateSound("symmetra_enemy", 1000, 250), //each hero has a line for when they see an enemy symmetra turret. not sure how to implement
 		sndCreateSound("torbjorn_enemy", 1000, 250), //consider shortening to torb?
 		// sndCreateSound("torbjorn_friendly", 1000, 250),
-		// sndCreateSound("tracer_enemy", 1000, 250),    //enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
-		// sndCreateSound("tracer_friendly", 1000, 250), //doesn't exist?
+		sndCreateSound("tracer_enemy", 1000, 250),    //enemy line has variations. variations are an argument for splitting it up to be !owtracer, putting them in separate sound collections
+		sndCreateSound("tracer_friendly", 1000, 250), //doesn't exist?
 		sndCreateSound("widow_enemy", 1000, 250),     //consider shortening to widow?
 		sndCreateSound("widow_friendly", 1000, 250),  //same as above
-		// sndCreateSound("zarya_enemy", 1000, 250),
-		// sndCreateSound("zarya_friendly", 1000, 250),
+		sndCreateSound("zarya_enemy", 1000, 250),
+		sndCreateSound("zarya_friendly", 1000, 250),
 		sndCreateSound("zenyatta_enemy", 1000, 250),
 		// sndCreateSound("zenyatta_friendly", 1000, 250),
 

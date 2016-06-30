@@ -195,11 +195,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// // If it's not relevant to our shard, just exit
-	// if !shardContains(guild.ID) {
-	// 	return
-	// }
-
 	baseCommand := strings.Replace(parts[0], PREFIX, "", 1)
 
 	if utilScontains(baseCommand, "text") {
@@ -267,8 +262,6 @@ func main() {
 	var (
 		Token      = flag.String("t", "", "Discord Authentication Token")
 		Redis      = flag.String("r", "", "Redis Connection String")
-		// Shard      = flag.String("s", "", "Shard ID")
-		// ShardCount = flag.String("c", "", "Number of shards")
 		Owner      = flag.String("o", "", "Owner ID")
 		err        error
 	)
@@ -309,14 +302,6 @@ func main() {
 		}).Fatal("Failed to create discord session")
 		return
 	}
-
-	// Set sharding info
-	// discord.ShardID, _ = strconv.Atoi(*Shard)
-	// discord.ShardCount, _ = strconv.Atoi(*ShardCount)
-
-	// if discord.ShardCount <= 0 {
-	// 	discord.ShardCount = 1
-	// }
 
 	discord.AddHandler(onReady)
 	discord.AddHandler(onGuildCreate)

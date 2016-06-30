@@ -1,16 +1,14 @@
 package main
 
-type TextCollection struct {
-    Commands    []string
-    Text        string
-}
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
-var SOUNDCOMMANDS *TextCollection = &TextCollection{
-    Commands: []string{
-        "imanoob",
-        "l2p",
-    },
-    Text: sndGetSoundCommands(),
+type TextFunction func(*discordgo.Guild, *discordgo.User, []string) string
+
+type TextCollection struct {
+    Commands	[]string
+    Function    TextFunction
 }
 
 var GITHUB *TextCollection = &TextCollection{
@@ -18,18 +16,54 @@ var GITHUB *TextCollection = &TextCollection{
         "github",
         "git",
     },
-    Text: "https://github.com/t11230/airhornbot",
+    Function: func (guild *discordgo.Guild,
+    				user *discordgo.User,
+    				args []string) string {
+    	return "https://github.com/t11230/airhornbot"
+    },
+}
+
+var SOUNDCOMMANDS *TextCollection = &TextCollection{
+    Commands: []string{
+        "imanoob",
+        "l2p",
+    },
+    Function: func (*discordgo.Guild, *discordgo.User, []string) string {
+    	return sndGetSoundCommands()
+    },
 }
 
 var HILLARY *TextCollection = &TextCollection{
     Commands: []string{
         "hillary",
     },
-    Text: "https://i.imgur.com/1PFAZsV.jpg",
+    Function: func (*discordgo.Guild, *discordgo.User, []string) string {
+    	return "https://i.imgur.com/1PFAZsV.jpg"
+    },
+}
+
+var MARKOV *TextCollection = &TextCollection{
+    Commands: []string{
+        "text",
+    },
+    Function: func (guild *discordgo.Guild,
+    				user *discordgo.User,
+    				args []string) string {
+    	return mkGetMessage(guild, user)
+    },
+}
+
+var STATS *TextCollection = &TextCollection{
+    Commands: []string{
+        "stats",
+    },
+    Function: gpPrintStats,
 }
 
 var TEXTCMDS []*TextCollection = []*TextCollection{
     SOUNDCOMMANDS, 
     GITHUB,
     HILLARY,
+    MARKOV,
+    STATS,
 }

@@ -8,12 +8,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func gpPrintStats(cid string, user *discordgo.User) {	
+func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string {	
 	games, times := dbGetGameStats(user.ID)
 
 	if len(games) == 0 {
-		discord.ChannelMessageSend(cid, "No stats. Git gud scrub.")
-		return
+		return "No stats. Git gud scrub."
 	}
 
 	w := &tabwriter.Writer{}
@@ -29,5 +28,5 @@ func gpPrintStats(cid string, user *discordgo.User) {
 	
 	fmt.Fprintf(w, "```\n")
 	w.Flush()
-	discord.ChannelMessageSend(cid, buf.String())
+	return buf.String()
 }

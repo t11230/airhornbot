@@ -22,28 +22,19 @@ type GuildChain struct {
 	MarkovChain 		*Chain
 }
 
-func mkGetMessage(cid string, guild *discordgo.Guild, user *discordgo.User, cs string) {
+func mkGetMessage(guild *discordgo.Guild, user *discordgo.User) string {
 	// Check if we already have a connection to this guild
 	guildChain, exists := chains[guild.ID]
 	if !exists {
 		log.Printf("No chain for guild %d", guild.ID)
-		return
-	}
-
-	count, _ := strconv.Atoi(cs)
-
-	if count > 5 {
-		count = 5
+		return ""
 	}
 
 	if len(guildChain.MarkovChain.Chain) == 0 {
 		log.Printf("Empty markov chain...")
-		return
+		return ""
 	}
-	for count > 0 {
-		discord.ChannelMessageSend(cid, guildChain.MarkovChain.Generate(40))
-		count--
-	}
+	return guildChain.MarkovChain.Generate(40)
 }
 
 func mkWriteMessage(guild *discordgo.Guild, content string) {

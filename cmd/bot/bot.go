@@ -129,9 +129,9 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
 		go mkLoadChain(m.ChannelID, g, m.Author, parts[2])
 
-	} else if utilScontains(parts[1], "get_message") && len(parts) >= 3 {
+	} else if utilScontains(parts[1], "get_message") && len(parts) >= 2 {
 		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-		go mkGetMessage(m.ChannelID, g, m.Author, parts[2])
+		go mkGetMessage(g, m.Author)
 	}
 }
 
@@ -165,7 +165,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		rando := rand.Intn(100)
 		if rando < 10 {
 			log.Printf("Sending markov message")
-			go mkGetMessage(m.ChannelID, guild, m.Author, "1")
+			go func() {
+				s.ChannelMessageSend(m.ChannelID, 
+										mkGetMessage(guild, m.Author))
+			}()
 		}
 		return
 	}
@@ -197,25 +200,15 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	baseCommand := strings.Replace(parts[0], PREFIX, "", 1)
 
-	if utilScontains(baseCommand, "text") {
-		if len(parts) > 1 {
-			go mkGetMessage(m.ChannelID, guild, m.Author, parts[1])
-		} else {
-			go mkGetMessage(m.ChannelID, guild, m.Author, "1")
-		}
-		return
-	} else if utilScontains(baseCommand, "stats") {
-		go gpPrintStats(m.ChannelID, m.Author)
-		return
-	}
-
+	// Process text based commands
 	for _, tcoll := range TEXTCMDS {
         if utilScontains(baseCommand, tcoll.Commands...) {
-            s.ChannelMessageSend(m.ChannelID, tcoll.Text) 
+            s.ChannelMessageSend(m.ChannelID,
+            						tcoll.Function(guild, m.Author, parts)) 
         }
     }
 
-	// Find the collection for the command we got
+	// Process sound commands
 	for _, coll := range COLLECTIONS {
 		if utilScontains(baseCommand, coll.Commands...) {
 

@@ -1,8 +1,10 @@
-# Changes to original bot
-Added a bunch of voice lines to use on my discord server.
-
 # Airhorn Bot
 Airhorn is an example implementation of the [Discord API](https://discordapp.com/developers/docs/intro). Airhorn bot utilizes the [discordgo](https://github.com/bwmarrin/discordgo) library, a free and open source library. Airhorn Bot requires Go 1.4 or higher.
+
+## Changes to original bot
+- Support for tracking time spent 'playing' games in Discord
+- Added basic sqlite database support (Didn't want to deal with Redis...)
+- Reorganized code into multiple files
 
 ## Usage
 Airhorn Bot has two components, a bot client that handles the playing of loyal airhorns, and a web server that implements OAuth2 and stats. Once added to your server, airhorn bot can be summoned by running `!airhorn`.

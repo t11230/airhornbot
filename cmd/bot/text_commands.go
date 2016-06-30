@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/bwmarrin/discordgo"
+    "github.com/bwmarrin/discordgo"
 )
 
 type TextFunction func(*discordgo.Guild, *discordgo.User, []string) string
 
 type TextCollection struct {
-    Commands	[]string
+    Commands    []string
     Function    TextFunction
 }
 
@@ -17,9 +17,9 @@ var GITHUB *TextCollection = &TextCollection{
         "git",
     },
     Function: func (guild *discordgo.Guild,
-    				user *discordgo.User,
-    				args []string) string {
-    	return "https://github.com/t11230/airhornbot"
+                    user *discordgo.User,
+                    args []string) string {
+        return "https://github.com/t11230/airhornbot"
     },
 }
 
@@ -29,7 +29,7 @@ var SOUNDCOMMANDS *TextCollection = &TextCollection{
         "l2p",
     },
     Function: func (*discordgo.Guild, *discordgo.User, []string) string {
-    	return sndGetSoundCommands()
+        return sndGetSoundCommands()
     },
 }
 
@@ -38,7 +38,7 @@ var HILLARY *TextCollection = &TextCollection{
         "hillary",
     },
     Function: func (*discordgo.Guild, *discordgo.User, []string) string {
-    	return "https://i.imgur.com/1PFAZsV.jpg"
+        return "https://i.imgur.com/1PFAZsV.jpg"
     },
 }
 
@@ -47,9 +47,9 @@ var MARKOV *TextCollection = &TextCollection{
         "text",
     },
     Function: func (guild *discordgo.Guild,
-    				user *discordgo.User,
-    				args []string) string {
-    	return mkGetMessage(guild, user)
+                    user *discordgo.User,
+                    args []string) string {
+        return mkGetMessage(guild, user)
     },
 }
 

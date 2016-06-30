@@ -2,8 +2,10 @@
 Airhorn is an example implementation of the [Discord API](https://discordapp.com/developers/docs/intro). Airhorn bot utilizes the [discordgo](https://github.com/bwmarrin/discordgo) library, a free and open source library. Airhorn Bot requires Go 1.4 or higher.
 
 ## Changes to original bot
+- Added sound-bytes from other forks and some clips that I added
 - Support for tracking time spent 'playing' games in Discord
 - Added basic sqlite database support (Didn't want to deal with Redis...)
+- Added Markov chain type chatbot interactions
 - Reorganized code into multiple files
 
 ## Usage

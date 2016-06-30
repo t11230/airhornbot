@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -256,4 +257,21 @@ func sndPlaySound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	delete(queues, play.GuildID)
 	vc.Disconnect()
 	return nil
+}
+
+func sndGetSoundCommands() string {
+    buffer := bytes.NewBufferString("")
+    for _, coll := range COLLECTIONS {
+        buffer.WriteString("**")
+        buffer.WriteString(coll.Commands[0])
+        buffer.WriteString(":** ")
+        for idx, snd := range coll.Sounds {
+            buffer.WriteString(snd.Name)
+            if(idx != len(coll.Sounds)-1) {
+                buffer.WriteString(", ")
+            }
+        }
+        buffer.WriteString("\n")
+    }
+    return buffer.String();
 }

@@ -39,7 +39,7 @@ func init() {
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
-	s.UpdateStatus(0, "Overwatch")
+	s.UpdateStatus(0, "Dank memes")
 }
 
 func processGameplayLoop(ticker *time.Ticker) {
@@ -208,6 +208,12 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		go gpPrintStats(m.ChannelID, m.Author)
 		return
 	}
+
+	for _, tcoll := range TEXTCMDS {
+        if utilScontains(baseCommand, tcoll.Commands...) {
+            s.ChannelMessageSend(m.ChannelID, tcoll.Text) 
+        }
+    }
 
 	// Find the collection for the command we got
 	for _, coll := range COLLECTIONS {

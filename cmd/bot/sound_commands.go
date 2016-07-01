@@ -170,7 +170,7 @@ var BIRTHDAY *SoundCollection = &SoundCollection{
 var OVERWATCH_ULTS *SoundCollection = &SoundCollection{
     Prefix: "owult",
     Commands: []string{
-        "overwatch",
+        "owult",
     },
     Sounds: []*Sound{
         //looking for sounds on

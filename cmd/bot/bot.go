@@ -34,7 +34,7 @@ var (
 
 func init() {
     // Seed the random number generator.
-    rand.Seed(time.Now().UnixNano()) 
+    rand.Seed(time.Now().UnixNano())
 }
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
@@ -45,7 +45,7 @@ func onReady(s *discordgo.Session, event *discordgo.Ready) {
 func processGameplayLoop(ticker *time.Ticker) {
     for {
         select {
-        case <- ticker.C:               
+        case <- ticker.C:
             var processedUsers []string
             for _, g := range discord.State.Guilds {
                 for _, p := range g.Presences {
@@ -135,6 +135,34 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
     }
 }
 
+func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
+    guild, _ := discord.State.Guild(m.GuildID)
+    if guild == nil {
+        log.WithFields(log.Fields{
+            "guild":   m.GuildID,
+            "channel": m,
+        }).Warning("Failed to grab guild")
+        return
+    }
+
+    member, _ := discord.State.Member(m.GuildID, m.UserID)
+    // if user == nil {
+    //     log.WithFields(log.Fields{
+    //         "user":   m.UserID,
+    //     }).Warning("Failed to grab user")
+    //     return
+    // }
+    play := sndCreatePlay(member.User, guild, AIRHORN, nil)
+    vc, err := discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, true, true)
+    if err != nil {
+        return
+    }
+
+    AIRHORN.Random().Play(vc)
+
+    vc.Disconnect()
+}
+
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     if len(m.Content) <= 0 {
         return
@@ -166,7 +194,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
         if rando < 10 {
             log.Printf("Sending markov message")
             go func() {
-                s.ChannelMessageSend(m.ChannelID, 
+                s.ChannelMessageSend(m.ChannelID,
                                         mkGetMessage(guild, m.Author))
             }()
         }
@@ -204,7 +232,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     for _, tcoll := range TEXTCMDS {
         if utilScontains(baseCommand, tcoll.Commands...) {
             s.ChannelMessageSend(m.ChannelID,
-                                    tcoll.Function(guild, m.Author, parts)) 
+                                    tcoll.Function(guild, m.Author, parts))
         }
     }
 
@@ -306,6 +334,7 @@ func main() {
     discord.AddHandler(onGuildCreate)
     discord.AddHandler(onMessageCreate)
     discord.AddHandler(onPresenceUpdate)
+    discord.AddHandler(onVoiceStateUpdate)
 
     err = discord.Open()
     if err != nil {

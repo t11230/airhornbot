@@ -136,6 +136,9 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 }
 
 func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
+    if m.ChannelID == "" {
+        return
+    }
     guild, _ := discord.State.Guild(m.GuildID)
     if guild == nil {
         log.WithFields(log.Fields{

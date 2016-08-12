@@ -60,10 +60,26 @@ var STATS *TextCollection = &TextCollection{
     Function: gpPrintStats,
 }
 
+var BITS *TextCollection = &TextCollection{
+    Commands: []string{
+        "bits",
+    },
+    Function: bitsPrintStats,
+}
+
+var DICEROLL *TextCollection = &TextCollection{
+    Commands: []string{
+        "roll",
+    },
+    Function: rollDice,
+}
+
 var TEXTCMDS []*TextCollection = []*TextCollection{
-    SOUNDCOMMANDS, 
+    SOUNDCOMMANDS,
     GITHUB,
     HILLARY,
     MARKOV,
     STATS,
+    BITS,
+    DICEROLL,
 }

@@ -23,7 +23,7 @@ var (
 
 func init() {
     soundRegex = regexp.MustCompile(`!(?P<group>[^\s]+)\s*(?P<effect>[^\s]*)`)
-    emoteRegex = regexp.MustCompile(`<([^>]+)>`) 
+    emoteRegex = regexp.MustCompile(`<([^>]+)>`)
     urlRegex = regexp.MustCompile(`http.*`)
 }
 
@@ -82,6 +82,23 @@ func utilStringInSlice(a string, list []string) bool {
     return false
 }
 
+func utilIntInSlice(a int, list []int) bool {
+    for _, b := range list {
+        if b == a {
+            return true
+        }
+    }
+    return false
+}
+
+func utilBooltoInt(b bool) int {
+    if b{
+        return 1
+    }
+    return 0
+
+}
+
 func utilScontains(key string, options ...string) bool {
     for _, item := range options {
         if item == key {
@@ -116,3 +133,14 @@ func utilGetMentioned(s *discordgo.Session, m *discordgo.MessageCreate) *discord
     }
     return nil
 }
+// func utilGetPreferredName(guild *discordgo.Guild, UserID string) string {
+//     for i, member := range(guild.Members) {
+//         if member.User.ID == UserID {
+//             if member.Nick != nil{
+//                 return member.Nick
+//             }
+//             return member.User.Username
+//         }
+//     }
+//     return nil
+// }

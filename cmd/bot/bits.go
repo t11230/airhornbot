@@ -14,13 +14,10 @@ type BitStat struct {
 }
 
 func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string {
+    db := dbGetSession()
     var bits BitStat
-    var bitslist []BitStat
-    //this will give bit values
-    //if(me)
-    //  bits = dbGetMyBitStats(user.ID)
-    //else
-    //  bitslist = dbGetBitLeaderboard()
+    // var bitslist []BitStat
+
     me:= false
     // other:= false
     if len(args)>1 {
@@ -31,8 +28,20 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
         //     //functionality to look up user by nickname
         // }
     }
-    bits.UserID = "172157994568646656"
-    bits.BitValue = 0
+
+    //this will give bit values
+    if(me) {
+        b := db.GetBitStats(guild.ID, user.ID)
+        if b == nil {
+            bits = BitStat{UserID: user.ID, BitValue: 0}
+            db.SetBitStats(guild.ID, user.ID, bits)
+        } else {
+            bits = *b
+        }
+    }
+    // else{
+    //     bitslist = dbGetBitLeaderboard()
+    // }
 
 
 
@@ -44,12 +53,13 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
     fmt.Fprintf(w, "```\n")
     if me {
         fmt.Fprintf(w, "%s: \t %d bits\n", utilGetPreferredName(guild, bits.UserID), bits.BitValue)
-    } else {
-        for _, bit := range(bitslist) {
-            name := utilGetPreferredName(guild, bit.UserID)
-            fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
-        }
     }
+    // else {
+    //     for _, bit := range(bitslist) {
+    //         name := utilGetPreferredName(guild, bit.UserID)
+    //         fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
+    //     }
+    // }
 
     fmt.Fprintf(w, "```\n")
     w.Flush()

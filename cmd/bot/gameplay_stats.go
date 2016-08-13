@@ -6,6 +6,26 @@ import (
     "text/tabwriter"
 
     "github.com/bwmarrin/discordgo"
+
+    "gopkg.in/mgo.v2/bson"
+)
+
+type GameTrackGame struct {
+    Type int
+    Name string
+    NumPlayers int
+}
+
+type GameTrackEntry struct {
+    Type int
+    UserID string
+    GameID bson.ObjectId
+    Time int
+}
+
+const (
+    GameTrackTypeGame = iota
+    GameTrackTypeEntry = iota
 )
 
 func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string { 

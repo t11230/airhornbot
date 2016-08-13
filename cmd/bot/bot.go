@@ -323,6 +323,10 @@ func main() {
 
     dbOpen("./Drumpf.db")
 
+    // Open new database
+    log.Info("Opening MongoDB")
+    dbMongoOpen("localhost")
+
     // Create a discord session
     log.Info("Starting discord session...")
     discord, err = discordgo.New(*Token)

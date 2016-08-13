@@ -1,16 +1,86 @@
 package main
 
 import (
+    "fmt"
+
     "database/sql"
     _ "github.com/mattn/go-sqlite3"
     
     log "github.com/Sirupsen/logrus"
+
+    "gopkg.in/mgo.v2"
+    "gopkg.in/mgo.v2/bson"
+)
+
+const (
+    MongoBaseDBName = "discord"
+    MongoBitsCollection = "bits"
 )
 
 var (
     database *sql.DB
+    mongoDatabase *BotDatabase
 )
 
+type BotDatabase struct {
+    Session *mgo.Session
+}
+
+/* New Mongo DB functions */
+/* Example:
+    log.Info("Updating bits")
+    db := dbGetSession()
+    db.SetBitStats("1", "2", BitStat{UserID: "2", BitValue: 15})
+    bits := db.GetBitStats("1", "2")
+ */
+func dbMongoOpen(serverURL string) {
+    db, err := mgo.Dial(serverURL)
+    if err != nil {
+        log.Fatalf("CreateSession: %s\n", err)
+        return
+    }
+
+    db.SetMode(mgo.Monotonic, true)
+
+    mongoDatabase = &BotDatabase {
+        Session: db,
+    }
+}
+
+func dbGetSession() *BotDatabase {
+    return &BotDatabase {
+        Session: mongoDatabase.Session.Copy(),
+    }
+}
+
+func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
+    c := db.Session.DB(fmt.Sprintf("%s-%s",
+                                   MongoBaseDBName,
+                                   guildID)).C(MongoBitsCollection)
+
+    // Retrieve the bits for the current user
+    result := &BitStat{}
+    err := c.Find(bson.M{"name": "Ale"}).One(&result)
+    if err != nil {
+        log.Fatal(err)
+        return nil
+    }
+
+    return result
+}
+
+func (db *BotDatabase) SetBitStats(guildID string, userID string, bitStats BitStat) {
+    c := db.Session.DB(fmt.Sprintf("%s-%s",
+                                   MongoBaseDBName,
+                                   guildID)).C(MongoBitsCollection)
+    err := c.Insert(bitStats)
+
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+/* Old SQLite DB functions */
 func dbOpen(dbFile string) {
     var err error
 

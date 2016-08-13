@@ -327,6 +327,36 @@ func main() {
     log.Info("Opening MongoDB")
     dbMongoOpen("localhost")
 
+    // log.Info("Testing bits")
+    // db := dbGetSession()
+    // db.SetBitStats("1", "2", 15)
+    // bits := db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // db.IncBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // db.DecBitStats("1", "2", 5)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // err = db.DecCheckBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // if err != nil {
+    //     log.Error("NEB")
+    // }
+
+    // err = db.DecCheckBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // if err != nil {
+    //     log.Error("NEB")
+    // }
+
     // Create a discord session
     log.Info("Starting discord session...")
     discord, err = discordgo.New(*Token)

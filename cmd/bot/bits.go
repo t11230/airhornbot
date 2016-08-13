@@ -34,7 +34,7 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
         b := db.GetBitStats(guild.ID, user.ID)
         if b == nil {
             bits = BitStat{UserID: user.ID, BitValue: 0}
-            db.SetBitStats(guild.ID, user.ID, bits)
+            db.SetBitStats(guild.ID, user.ID, bits.BitValue)
         } else {
             bits = *b
         }

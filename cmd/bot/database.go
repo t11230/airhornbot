@@ -1,6 +1,7 @@
 package main
 
 import (
+    "errors"
     "fmt"
 
     "database/sql"
@@ -69,15 +70,61 @@ func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
     return result
 }
 
-func (db *BotDatabase) SetBitStats(guildID string, userID string, bitStats BitStat) {
+func (db *BotDatabase) SetBitStats(guildID string, userID string, value int) {
     c := db.Session.DB(fmt.Sprintf("%s-%s",
                                    MongoBaseDBName,
                                    guildID)).C(MongoBitsCollection)
-    err := c.Insert(bitStats)
-
-    if err != nil {
-        log.Error(err)
+    change := mgo.Change{
+            Update: bson.M{"bitvalue": value},
+            ReturnNew: true,
     }
+    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
+    if err != nil {
+        log.Error(err)        
+    }
+}
+
+func (db *BotDatabase) IncBitStats(guildID string, userID string, value int) {
+    c := db.Session.DB(fmt.Sprintf("%s-%s",
+                                   MongoBaseDBName,
+                                   guildID)).C(MongoBitsCollection)
+    change := mgo.Change{
+            Update: bson.M{"$inc": bson.M{"bitvalue": value}},
+            ReturnNew: true,
+    }
+    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
+    if err != nil {
+        log.Error(err)        
+    }
+}
+
+func (db *BotDatabase) DecBitStats(guildID string, userID string, value int) {
+    c := db.Session.DB(fmt.Sprintf("%s-%s",
+                                   MongoBaseDBName,
+                                   guildID)).C(MongoBitsCollection)
+    change := mgo.Change{
+            Update: bson.M{"$inc": bson.M{"bitvalue": -value}},
+            ReturnNew: true,
+    }
+    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
+    if err != nil {
+        log.Error(err)        
+    }
+}
+
+func (db *BotDatabase) DecCheckBitStats(guildID string, userID string, value int) (error) {
+    b := db.GetBitStats(guildID, userID)
+    if b == nil {
+        b = &BitStat{UserID: userID, BitValue: 0}
+        db.SetBitStats(guildID, userID, b.BitValue)
+    }
+
+    if (b.BitValue - value < 0) {
+        return errors.New("Not enough bits")
+    }
+
+    db.DecBitStats(guildID, userID, value)
+    return nil
 }
 
 /* Old SQLite DB functions */

@@ -133,14 +133,14 @@ func utilGetMentioned(s *discordgo.Session, m *discordgo.MessageCreate) *discord
     }
     return nil
 }
-// func utilGetPreferredName(guild *discordgo.Guild, UserID string) string {
-//     for i, member := range(guild.Members) {
-//         if member.User.ID == UserID {
-//             if member.Nick != nil{
-//                 return member.Nick
-//             }
-//             return member.User.Username
-//         }
-//     }
-//     return nil
-// }
+func utilGetPreferredName(guild *discordgo.Guild, UserID string) string {
+    for _, member := range(guild.Members) {
+        if member.User.ID == UserID {
+            if member.Nick != ""{
+                return member.Nick
+            }
+            return member.User.Username
+        }
+    }
+    return "Failed to get Preferred Name"
+}

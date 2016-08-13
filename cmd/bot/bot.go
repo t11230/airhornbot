@@ -362,9 +362,9 @@ func main() {
     // We're running!
     log.Info("AIRHORNBOT is ready to horn it up.")
 
-    log.Info("Setting up Game watch tick")
-    ticker := time.NewTicker(time.Second * 60)
-    go processGameplayLoop(ticker)
+    // log.Info("Setting up Game watch tick")
+    // ticker := time.NewTicker(time.Second * 60)
+    // go processGameplayLoop(ticker)
 
     // Wait for a signal to quit
     c := make(chan os.Signal, 1)

@@ -60,7 +60,7 @@ func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
 
     // Retrieve the bits for the current user
     result := &BitStat{}
-    err := c.Find(bson.M{"name": "Ale"}).One(&result)
+    err := c.Find(bson.M{"userid": userID}).One(&result)
     if err != nil {
         log.Fatal(err)
         return nil

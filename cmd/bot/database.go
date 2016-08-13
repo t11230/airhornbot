@@ -36,7 +36,7 @@ type BotDatabase struct {
 func dbMongoOpen(serverURL string) {
     db, err := mgo.Dial(serverURL)
     if err != nil {
-        log.Fatalf("CreateSession: %s\n", err)
+        log.Fatalf("MongoDB Open: %s\n", err)
         return
     }
 

@@ -6,7 +6,7 @@ import (
 
     "database/sql"
     _ "github.com/mattn/go-sqlite3"
-    
+
     log "github.com/Sirupsen/logrus"
 
     "gopkg.in/mgo.v2"
@@ -31,7 +31,7 @@ type BotDatabase struct {
 /* Example:
     log.Info("Updating bits")
     db := dbGetSession()
-    db.SetBitStats("1", "2", BitStat{UserID: "2", BitValue: 15})
+    db.SetBitStats("1", "2", int)
     bits := db.GetBitStats("1", "2")
  */
 func dbMongoOpen(serverURL string) {
@@ -80,7 +80,7 @@ func (db *BotDatabase) SetBitStats(guildID string, userID string, value int) {
     }
     _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
     if err != nil {
-        log.Error(err)        
+        log.Error(err)
     }
 }
 
@@ -94,7 +94,7 @@ func (db *BotDatabase) IncBitStats(guildID string, userID string, value int) {
     }
     _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
     if err != nil {
-        log.Error(err)        
+        log.Error(err)
     }
 }
 
@@ -108,7 +108,7 @@ func (db *BotDatabase) DecBitStats(guildID string, userID string, value int) {
     }
     _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
     if err != nil {
-        log.Error(err)        
+        log.Error(err)
     }
 }
 
@@ -153,7 +153,7 @@ func dbOpen(dbFile string) {
     discordStatsRows.Close()
 }
 
-func dbInit() { 
+func dbInit() {
     sqlStmt := `
     CREATE TABLE discord_stats (
         id integer not null primary key,
@@ -244,6 +244,6 @@ func dbRowCount(rows *sql.Rows) (count int) {
         if err != nil {
             panic(err)
         }
-    }   
+    }
     return count
 }

@@ -193,6 +193,40 @@ func (db *BotDatabase) SetBetRollAnte(guildID string, ante int) error {
     return nil
 }
 
+func (db *BotDatabase) BetRollAddPlayer(guildID string, player Player) error {
+    b := db.GetActiveBetRoll(guildID)
+    if b == nil {
+        log.Error(errors.New("No active BetRoll"))
+        return nil
+    }
+
+    b.Players = append(b.Players, player)
+    
+    c := db.GetBetRollCollection(guildID)
+
+    update := bson.M{
+        "$set": b,
+    }
+
+    err := c.Update(bson.M{}, update)
+    if err != nil {
+        return err
+    }
+
+
+    return nil
+}
+
+func (db *BotDatabase) BetRollOpen(guildID string) error {
+    b := db.GetActiveBetRoll(guildID)
+    if b != nil {
+        return errors.New("An active BetRoll already exists")
+    }
+
+    c := db.GetBetRollCollection(guildID)
+    return c.Insert(BitRoll{})
+}
+
 func (db *BotDatabase) BetRollClose(guildID string) error {
     b := db.GetActiveBetRoll(guildID)
     if b == nil {

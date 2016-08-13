@@ -27,6 +27,7 @@ var (
 
 type BotDatabase struct {
     Session *mgo.Session
+    GuildID string
 }
 
 /* New Mongo DB functions */
@@ -50,21 +51,22 @@ func dbMongoOpen(serverURL string) {
     }
 }
 
-func dbGetSession() *BotDatabase {
+func dbGetSession(guildID string) *BotDatabase {
     return &BotDatabase {
         Session: mongoDatabase.Session.Copy(),
+        GuildID: guildID,
     }
 }
 
 /* Bit stats functions */
-func (db *BotDatabase) GetBitsCollection(guildID string) *mgo.Collection {
+func (db *BotDatabase) GetBitsCollection() *mgo.Collection {
     return db.Session.DB(fmt.Sprintf("%s-%s",
                          MongoBaseDBName,
-                         guildID)).C(MongoBitsCollection)
+                         db.GuildID)).C(MongoBitsCollection)
 }
 
-func (db *BotDatabase) UpsertBitStats(guildID string, userID string, update interface{}) {
-    c := db.GetBitsCollection(guildID)
+func (db *BotDatabase) UpsertBitStats(userID string, update interface{}) {
+    c := db.GetBitsCollection()
 
     _, err := c.Upsert(bson.M{"userid": userID}, update)
     if err != nil {
@@ -72,8 +74,8 @@ func (db *BotDatabase) UpsertBitStats(guildID string, userID string, update inte
     }
 }
 
-func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat {
-    c := db.GetBitsCollection(guildID)
+func (db *BotDatabase) GetBitStats(userID string) *BitStat {
+    c := db.GetBitsCollection()
 
     // Retrieve the bits for the current user
     result := &BitStat{}
@@ -86,7 +88,7 @@ func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat {
     return result
 }
 
-func (db *BotDatabase) SetBitStats(guildID string, userID string, value int) {
+func (db *BotDatabase) SetBitStats(userID string, value int) {
     update := bson.M{
         "$set": BitStat{
             UserID: userID,
@@ -94,10 +96,10 @@ func (db *BotDatabase) SetBitStats(guildID string, userID string, value int) {
         },
     }
 
-    db.UpsertBitStats(guildID, userID, update)
+    db.UpsertBitStats(userID, update)
 }
 
-func (db *BotDatabase) IncBitStats(guildID string, userID string, value int) {
+func (db *BotDatabase) IncBitStats(userID string, value int) {
     update := bson.M{
         "$set": BitStat{
             UserID: userID,
@@ -108,30 +110,30 @@ func (db *BotDatabase) IncBitStats(guildID string, userID string, value int) {
         },
     }
 
-    db.UpsertBitStats(guildID, userID, update)
+    db.UpsertBitStats(userID, update)
 }
 
-func (db *BotDatabase) DecBitStats(guildID string, userID string, value int) {
-    db.IncBitStats(guildID, userID, -value)
+func (db *BotDatabase) DecBitStats(userID string, value int) {
+    db.IncBitStats(userID, -value)
 }
 
-func (db *BotDatabase) DecCheckBitStats(guildID string, userID string, value int) (error) {
-    b := db.GetBitStats(guildID, userID)
+func (db *BotDatabase) DecCheckBitStats(userID string, value int) (error) {
+    b := db.GetBitStats(userID)
     if b == nil {
         b = &BitStat{UserID: userID, BitValue: 0}
-        db.SetBitStats(guildID, userID, b.BitValue)
+        db.SetBitStats(userID, b.BitValue)
     }
 
     if (b.BitValue - value < 0) {
         return errors.New("Not enough bits")
     }
 
-    db.DecBitStats(guildID, userID, value)
+    db.DecBitStats( userID, value)
     return nil
 }
 
-func (db *BotDatabase) GetTopBitStats(guildID string, count int) []BitStat {
-    c := db.GetBitsCollection(guildID)
+func (db *BotDatabase) GetTopBitStats(count int) []BitStat {
+    c := db.GetBitsCollection()
 
     var result []BitStat
     err := c.Find(nil).Sort("-bitvalue").Limit(count).All(&result)
@@ -150,10 +152,10 @@ func (db *BotDatabase) GetBetRollCollection(guildID string) *mgo.Collection {
                          guildID)).C(MongoBetRollCollection)
 }
 
-func (db *BotDatabase) GetActiveBetRoll(guildID string) *BitRoll {
+func (db *BotDatabase) GetActiveBetRoll(guildID string) *BetRoll {
     c := db.GetBetRollCollection(guildID)
 
-    result := &BitRoll{}
+    result := &BetRoll{}
     err := c.Find(nil).One(&result)
     if err != nil {
         return nil
@@ -201,7 +203,7 @@ func (db *BotDatabase) BetRollAddPlayer(guildID string, player Player) error {
     }
 
     b.Players = append(b.Players, player)
-    
+
     c := db.GetBetRollCollection(guildID)
 
     update := bson.M{
@@ -224,7 +226,7 @@ func (db *BotDatabase) BetRollOpen(guildID string) error {
     }
 
     c := db.GetBetRollCollection(guildID)
-    return c.Insert(BitRoll{})
+    return c.Insert(BetRoll{})
 }
 
 func (db *BotDatabase) BetRollClose(guildID string) error {

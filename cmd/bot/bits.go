@@ -16,7 +16,7 @@ type BitStat struct {
 func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string {
     db := dbGetSession()
     var bits BitStat
-    // var bitslist []BitStat
+    var bitslist []BitStat
 
     me:= false
     // other:= false
@@ -38,10 +38,9 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
         } else {
             bits = *b
         }
+    } else {
+        bitslist = db.GetTopBitStats(guild.ID, 10)
     }
-    // else{
-    //     bitslist = dbGetBitLeaderboard()
-    // }
 
 
 
@@ -53,13 +52,12 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
     fmt.Fprintf(w, "```\n")
     if me {
         fmt.Fprintf(w, "%s: \t %d bits\n", utilGetPreferredName(guild, bits.UserID), bits.BitValue)
+    } else {
+        for _, bit := range(bitslist) {
+            name := utilGetPreferredName(guild, bit.UserID)
+            fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
+        }
     }
-    // else {
-    //     for _, bit := range(bitslist) {
-    //         name := utilGetPreferredName(guild, bit.UserID)
-    //         fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
-    //     }
-    // }
 
     fmt.Fprintf(w, "```\n")
     w.Flush()

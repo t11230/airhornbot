@@ -30,6 +30,9 @@ var (
 
     // Owner
     OWNER string
+
+    // Temporary bool for enabling welcome
+    WelcomeEnabled bool
 )
 
 func init() {
@@ -132,11 +135,14 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
     } else if utilScontains(parts[1], "get_message") && len(parts) >= 2 {
         s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
         go mkGetMessage(g, m.Author)
+    } else if utilScontains(parts[1], "toggle_welcome") {
+        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+        WelcomeEnabled = !WelcomeEnabled
     }
 }
 
 func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
-    if m.ChannelID == "" {
+    if m.ChannelID == "" || !WelcomeEnabled {
         return
     }
 
@@ -336,6 +342,8 @@ func main() {
         }).Fatal("Failed to create discord session")
         return
     }
+
+    WelcomeEnabled = false
 
     discord.AddHandler(onReady)
     discord.AddHandler(onGuildCreate)

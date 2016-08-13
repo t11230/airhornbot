@@ -14,7 +14,7 @@ type BitStat struct {
 }
 
 func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string {
-    db := dbGetSession()
+    db := dbGetSession(guild.ID)
     var bits BitStat
     var bitslist []BitStat
 
@@ -31,15 +31,15 @@ func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string)
 
     //this will give bit values
     if(me) {
-        b := db.GetBitStats(guild.ID, user.ID)
+        b := db.GetBitStats(user.ID)
         if b == nil {
             bits = BitStat{UserID: user.ID, BitValue: 0}
-            db.SetBitStats(guild.ID, user.ID, bits.BitValue)
+            db.SetBitStats(user.ID, bits.BitValue)
         } else {
             bits = *b
         }
     } else {
-        bitslist = db.GetTopBitStats(guild.ID, 10)
+        bitslist = db.GetTopBitStats(10)
     }
 
 

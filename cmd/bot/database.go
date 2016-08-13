@@ -62,7 +62,7 @@ func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
     result := &BitStat{}
     err := c.Find(bson.M{"userid": userID}).One(&result)
     if err != nil {
-        log.Fatal(err)
+        log.Info(err)
         return nil
     }
 
@@ -76,7 +76,7 @@ func (db *BotDatabase) SetBitStats(guildID string, userID string, bitStats BitSt
     err := c.Insert(bitStats)
 
     if err != nil {
-        log.Fatal(err)
+        log.Error(err)
     }
 }
 

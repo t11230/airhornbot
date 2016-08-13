@@ -150,6 +150,7 @@ var MEMES *SoundCollection = &SoundCollection{
         sndCreateSound("digitalsports", 50, 0),
         sndCreateSound("csi", 50, 0),
         sndCreateSound("nogod", 50, 0),
+        sndCreateSound("welcomebdc", 50, 0),
     },
 }
 

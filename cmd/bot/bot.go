@@ -139,6 +139,7 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
     if m.ChannelID == "" {
         return
     }
+
     guild, _ := discord.State.Guild(m.GuildID)
     if guild == nil {
         log.WithFields(log.Fields{
@@ -149,21 +150,24 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
     }
 
     member, _ := discord.State.Member(m.GuildID, m.UserID)
-    // if user == nil {
-    //     log.WithFields(log.Fields{
-    //         "user":   m.UserID,
-    //     }).Warning("Failed to grab user")
-    //     return
-    // }
-    play := sndCreatePlay(member.User, guild, AIRHORN, nil)
-    vc, err := discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, true, true)
-    if err != nil {
+    if member == nil {
+        log.WithFields(log.Fields{
+            "member":   member,
+        }).Warning("Failed to grab member")
         return
     }
 
-    AIRHORN.Random().Play(vc)
+    if member.User.Bot {
+        return
+    }
 
-    vc.Disconnect()
+    var sound *Sound
+    for _, s := range MEMES.Sounds {
+        if "welcomebdc" == s.Name {
+            sound = s
+        }
+    }
+    go sndEnqueuePlay(member.User, guild, MEMES, sound)
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {

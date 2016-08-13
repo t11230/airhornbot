@@ -42,9 +42,9 @@ func rollDice(guild *discordgo.Guild, user *discordgo.User, args []string) strin
     if draw {
         if maxnum == 6 {
             C := "o "
-            s:="---------\n| "+string(C[utilBooltoInt(r<1)])+"   "+string(C[utilBooltoInt(r<3)])+" |\n| "+string(C[utilBooltoInt(r<5)])
-            z:=string(C[utilBooltoInt(r<5)])+" |\n| "+string(C[utilBooltoInt(r<3)])+"   "+string(C[utilBooltoInt(r<1)])+" |\n---------"
-            result = s+" "+string(C[utilBooltoInt((r&1)>0)])+" "+z
+            s:="---------\n| "+string(C[utilBooltoInt(r<=1)])+"   "+string(C[utilBooltoInt(r<=3)])+" |\n| "+string(C[utilBooltoInt(r<=5)])
+            z:=string(C[utilBooltoInt(r<=5)])+" |\n| "+string(C[utilBooltoInt(r<=3)])+"   "+string(C[utilBooltoInt(r<=1)])+" |\n---------"
+            result = s+" "+string(C[utilBooltoInt((r&1)==0)])+" "+z
         } else if (maxnum == 4) || (maxnum == 8) {
             result = "      *\n     * *\n    *   *\n   *  "+strconv.Itoa(r)+"  *\n  *       *\n * * * * * *"
         } else if maxnum == 10 {

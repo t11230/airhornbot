@@ -54,10 +54,24 @@ func dbGetSession() *BotDatabase {
     }
 }
 
-func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
-    c := db.Session.DB(fmt.Sprintf("%s-%s",
-                                   MongoBaseDBName,
-                                   guildID)).C(MongoBitsCollection)
+/* Bit stats functions */
+func (db *BotDatabase) GetBitsCollection(guildID string) *mgo.Collection {
+    return db.Session.DB(fmt.Sprintf("%s-%s",
+                         MongoBaseDBName,
+                         guildID)).C(MongoBitsCollection)
+}
+
+func (db *BotDatabase) UpsertBitStats(guildID string, userID string, update interface{}) {
+    c := db.GetBitsCollection(guildID)
+
+    _, err := c.Upsert(bson.M{"userid": userID}, update)
+    if err != nil {
+        log.Error(err)        
+    }
+}
+
+func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat {
+    c := db.GetBitsCollection(guildID)
 
     // Retrieve the bits for the current user
     result := &BitStat{}
@@ -71,45 +85,32 @@ func (db *BotDatabase) GetBitStats(guildID string, userID string) *BitStat{
 }
 
 func (db *BotDatabase) SetBitStats(guildID string, userID string, value int) {
-    c := db.Session.DB(fmt.Sprintf("%s-%s",
-                                   MongoBaseDBName,
-                                   guildID)).C(MongoBitsCollection)
-    change := mgo.Change{
-            Update: bson.M{"bitvalue": value},
-            ReturnNew: true,
+    update := bson.M{
+        "$set": BitStat{
+            UserID: userID,
+            BitValue: value,
+        },
     }
-    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
-    if err != nil {
-        log.Error(err)        
-    }
+
+    db.UpsertBitStats(guildID, userID, update)
 }
 
 func (db *BotDatabase) IncBitStats(guildID string, userID string, value int) {
-    c := db.Session.DB(fmt.Sprintf("%s-%s",
-                                   MongoBaseDBName,
-                                   guildID)).C(MongoBitsCollection)
-    change := mgo.Change{
-            Update: bson.M{"$inc": bson.M{"bitvalue": value}},
-            ReturnNew: true,
+    update := bson.M{
+        "$set": BitStat{
+            UserID: userID,
+            BitValue: value,
+        },
+        "$inc": bson.M{
+            "bitvalue": value,
+        },
     }
-    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
-    if err != nil {
-        log.Error(err)        
-    }
+
+    db.UpsertBitStats(guildID, userID, update)
 }
 
 func (db *BotDatabase) DecBitStats(guildID string, userID string, value int) {
-    c := db.Session.DB(fmt.Sprintf("%s-%s",
-                                   MongoBaseDBName,
-                                   guildID)).C(MongoBitsCollection)
-    change := mgo.Change{
-            Update: bson.M{"$inc": bson.M{"bitvalue": -value}},
-            ReturnNew: true,
-    }
-    _, err := c.Find(bson.M{"userid": userID}).Apply(change, nil)
-    if err != nil {
-        log.Error(err)        
-    }
+    db.IncBitStats(guildID, userID, -value)
 }
 
 func (db *BotDatabase) DecCheckBitStats(guildID string, userID string, value int) (error) {
@@ -126,6 +127,21 @@ func (db *BotDatabase) DecCheckBitStats(guildID string, userID string, value int
     db.DecBitStats(guildID, userID, value)
     return nil
 }
+
+func (db *BotDatabase) GetTopBitStats(guildID string, count int) []BitStat {
+    c := db.GetBitsCollection(guildID)
+
+    var result []BitStat
+    err := c.Find(nil).Sort("-bitvalue").Limit(count).All(&result)
+    if err != nil {
+        log.Error(err) 
+        return nil
+    }
+
+    return result
+}
+
+/* Game tracking functions */
 
 /* Old SQLite DB functions */
 func dbOpen(dbFile string) {

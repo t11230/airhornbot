@@ -73,7 +73,7 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 
     for _, channel := range event.Guild.Channels {
         if channel.ID == event.Guild.ID {
-            s.ChannelMessageSend(channel.ID, "**AIRHORN BOT READY FOR HORNING. TYPE `!AIRHORN` WHILE IN A VOICE CHANNEL TO ACTIVATE**")
+            s.ChannelMessageSend(channel.ID, "**RAMENBOT READY**")
             return
         }
     }
@@ -400,7 +400,7 @@ func main() {
     }
 
     // We're running!
-    log.Info("AIRHORNBOT is ready to horn it up.")
+    log.Info("RamenBot is ready to horn it up.")
 
     // log.Info("Setting up Game watch tick")
     // ticker := time.NewTicker(time.Second * 60)

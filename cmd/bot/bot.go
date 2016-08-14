@@ -56,7 +56,9 @@ func processGameplayLoop(ticker *time.Ticker) {
                             !utilStringInSlice(p.User.ID, processedUsers) {
 
                         processedUsers = append(processedUsers, p.User.ID)
-                        dbIncGameEntry(p.User.ID, p.Game.Name, 60)
+
+                        db := dbGetSession(g.ID)
+                        db.GameTrackIncGameEntry(p.User.ID, p.Game.Name, 60)
                     }
                 }
             }
@@ -245,7 +247,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     for _, tcoll := range TEXTCMDS {
         if utilScontains(baseCommand, tcoll.Commands...) {
             s.ChannelMessageSend(m.ChannelID,
-                                    tcoll.Function(guild, m.Author, parts))
+                                    tcoll.Function(guild, m.Message, parts))
         }
     }
 
@@ -331,7 +333,45 @@ func main() {
         }
     }
 
-    dbOpen("./Drumpf.db")
+    // Open new database
+    log.Info("Opening MongoDB")
+    dbMongoOpen("localhost")
+
+    // log.Info("Testing bits")
+    db := dbGetSession("1")
+    // db.SetBitStats("1", "2", 15)
+    // bits := db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // db.IncBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // db.DecBitStats("1", "2", 5)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // err = db.DecCheckBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // if err != nil {
+    //     log.Error("NEB")
+    // }
+
+    // err = db.DecCheckBitStats("1", "2", 20)
+    // bits = db.GetBitStats("1", "2")
+    // log.Info(bits)
+
+    // if err != nil {
+    //     log.Error("NEB")
+    // }
+    
+    db.GameTrackIncGameEntry("2", "Game1", 5)
+    db.GameTrackIncGameEntry("2", "Game2", 6)
+    db.GameTrackIncGameEntry("2", "Game3", 7)
+    db.GameTrackIncGameEntry("2", "Game4", 8)
+    
 
     // Create a discord session
     log.Info("Starting discord session...")

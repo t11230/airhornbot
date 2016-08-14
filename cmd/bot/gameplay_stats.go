@@ -8,10 +8,21 @@ import (
     "github.com/bwmarrin/discordgo"
 )
 
-func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string { 
-    games, times := dbGetGameStats(user.ID)
+type GameTrackEntry struct {
+    UserID string
+    Game string
+    Time int
+}
 
-    if len(games) == 0 {
+func gpHandleStatsCommand(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
+    return ""
+}
+
+func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string { 
+    db := dbGetSession(guild.ID)
+    entries := db.GameTrackGetUserStats(user.ID, 10)
+
+    if len(entries) == 0 {
         return "No stats. Git gud scrub."
     }
 
@@ -22,8 +33,8 @@ func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) s
     // fmt.Fprintf(w, "%s Game-Time Stats:\n", ) // Not sure how to get nicknames...
     fmt.Fprintf(w, "```\n")
 
-    for i, game := range(games) {
-        fmt.Fprintf(w, "%s: \t %.2f Hours\n", game, float64(times[i]) / (60.0*60.0))
+    for _, entry := range(entries) {
+        fmt.Fprintf(w, "%s: \t %.2f Hours\n", entry.Game, float64(entry.Time) / (60.0*60.0))
     }
     
     fmt.Fprintf(w, "```\n")

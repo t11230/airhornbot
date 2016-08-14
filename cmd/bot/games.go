@@ -9,6 +9,7 @@ import (
     "strconv"
     "strings"
     "time"
+    log "github.com/Sirupsen/logrus"
 )
 
 type Player struct {
@@ -16,7 +17,7 @@ type Player struct {
     Bid int
 }
 
-type BitRoll struct {
+type BetRoll struct {
     Players []Player
     Ante int
 }
@@ -90,18 +91,20 @@ func rollDice(guild *discordgo.Guild, user *discordgo.User, args []string) strin
 }
 
 func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string {
-    db := dbGetSession()
-    event := db.getActiveBetRoll()
+    log.Info("Placing Betroll")
+    db := dbGetSession(guild.ID)
+    event := db.GetActiveBetRoll(guild.ID)
     pool := 0
     ante := 0
+    payout := 0
     draw := false
     r:=0
     maxnum:=0
     w := &tabwriter.Writer{}
     buf := &bytes.Buffer{}
     result := ""
-    win_result := "<b>Winner(s):</b>\n"
-    payout_result := "<b>Payout:</b> "
+    win_result := "Winner(s):\n"
+    payout_result := "Payout: "
     w.Init(buf, 0, 4, 0, ' ', 0)
     var err error
     betroll_help := `**betroll usage:** betroll *ante* *dietype (optional)*
@@ -118,10 +121,18 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
     ante_error_msg := "**ERROR:** Non-numerical ante submitted.  Please don't be a smartass."
     dice_error_msg := "**ERROR:** Non-numerical dice submitted.  Please don't be a smartass."
     event_error_msg := "**ERROR:** BetRoll Event already in progress."
+    db_error_msg := "**ERROR:** Database error."
+    //success_msg := ""
     var players []Player
     var winnerIDs []string
-    if event == nil {
+    if event != nil {
         fmt.Fprintf(w, event_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+    err = db.BetRollOpen(guild.ID)
+    if err != nil {
+        fmt.Fprintf(w, db_error_msg)
         w.Flush()
         return buf.String()
     }
@@ -136,6 +147,13 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
             w.Flush()
             return buf.String()
         }
+        log.Info(ante)
+        err = db.SetBetRollAnte(guild.ID, ante)
+        if err != nil {
+            fmt.Fprintf(w, db_error_msg)
+            w.Flush()
+            return buf.String()
+        }
         printBetRollTime(30, ante)
         time.Sleep(10*time.Second)
         printBetRollTime(20, ante)
@@ -143,10 +161,10 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
         printBetRollTime(10, ante)
         time.Sleep(10*time.Second)
         printBetRollTime(0, ante)
-        players = db.getPlayers()
+        players = db.GetPlayers(guild.ID)
         pool = ante * len(players)
         if strings.HasPrefix(args[2], "d") {
-            maxnum, err = strconv.Atoi(strings.Replace(args[1], "d", "", 1))
+            maxnum, err = strconv.Atoi(strings.Replace(args[2], "d", "", 1))
             if err!=nil {
                 fmt.Fprintf(w, dice_error_msg)
                 w.Flush()
@@ -156,7 +174,6 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
                 draw = true
             }
         } else {
-            maxnum, err = strconv.Atoi(args[1])
             if err!=nil {
                 fmt.Fprintf(w, dice_error_msg)
                 w.Flush()
@@ -184,16 +201,26 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
                 winnerIDs = append(winnerIDs, player.UserID)
             }
         }
-        payout := pool/len(winnerIDs)
-        payout_result = payout_result + strconv.Itoa(payout) + "bits"
+        if len(winnerIDs) == 0 {
+            payout = 0
+        } else {
+            payout = pool/len(winnerIDs)
+        }
+        payout_result = payout_result + strconv.Itoa(payout) + " bits"
         for _,winner := range(winnerIDs) {
-            db.IncBitStats(guild.ID, winner, payout)
+            db.IncBitStats(winner, payout)
             win_result = win_result + utilGetPreferredName(guild, winner) + "\n"
         }
     }else {
         ante, err = strconv.Atoi(args[1])
         if err != nil {
             fmt.Fprintf(w, ante_error_msg)
+            w.Flush()
+            return buf.String()
+        }
+        err = db.SetBetRollAnte(guild.ID, ante)
+        if err != nil {
+            fmt.Fprintf(w, db_error_msg)
             w.Flush()
             return buf.String()
         }
@@ -204,7 +231,7 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
         printBetRollTime(10, ante)
         time.Sleep(10*time.Second)
         printBetRollTime(0, ante)
-        players = db.getPlayers()
+        players = db.GetPlayers(guild.ID)
         pool = ante * len(players)
         maxnum = 6
         r = rand.Intn(6) + 1
@@ -214,13 +241,24 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
                 winnerIDs = append(winnerIDs, player.UserID)
             }
         }
-        payout := pool/len(winnerIDs)
-        payout_result = payout_result + strconv.Itoa(payout) + "bits"
+        if len(winnerIDs) == 0 {
+            payout = 0
+        } else {
+            payout = pool/len(winnerIDs)
+        }
+        payout_result = payout_result + strconv.Itoa(payout) + " bits"
         for _,winner := range(winnerIDs) {
-            db.IncBitStats(guild.ID, winner, payout)
-            win_result = win_result + utilGetPreferredName(guild, winner) + "\n"
+            db.IncBitStats(winner, payout)
+            win_result = win_result + "     " + utilGetPreferredName(guild, winner) + "\n"
         }
     }
+    err = db.BetRollClose(guild.ID)
+    if err!=nil {
+        fmt.Fprintf(w, db_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+
     fmt.Fprintf(w, "```\n")
     fmt.Fprintf(w, result)
     fmt.Fprintf(w, "```\n")
@@ -229,7 +267,56 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
     fmt.Fprintf(w, payout_result)
     fmt.Fprintf(w, "```\n")
     w.Flush()
-    db.BetRollClose()
+    return buf.String()
+}
+
+func bid(guild *discordgo.Guild, user *discordgo.User, args []string) string {
+    db := dbGetSession(guild.ID)
+    event := db.GetActiveBetRoll(guild.ID)
+    w := &tabwriter.Writer{}
+    buf := &bytes.Buffer{}
+    var err error
+    w.Init(buf, 0, 4, 0, ' ', 0)
+    event_error_msg := "**ERROR:** No BetRoll Event currently in progress."
+    bid_error_msg := "**ERROR:** Non-numerical bid submitted.  Please don't be a smartass."
+    db_error_msg := "**ERROR:** Database error."
+    success_msg := "*Bet Successfully Placed* :ok_hand:"
+    ante_error_msg := "Not enough bits for ante :slight_frown:"
+    bid_help := `**bid usage:** bid *number*
+    This command bids on a bet roll. The second argument is the result that you are bidding on.`
+    if event == nil {
+        fmt.Fprintf(w, event_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+    if len(args)!=2 {
+        fmt.Fprintf(w, bid_help)
+        w.Flush()
+        return buf.String()
+    }
+    var me Player
+    me.UserID = user.ID
+    me.Bid, err = strconv.Atoi(args[1])
+    if err!=nil {
+        fmt.Fprintf(w, bid_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+    err = db.DecCheckBitStats(user.ID, event.Ante)
+    if err!=nil {
+        fmt.Fprintf(w, ante_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+    db.DecBitStats(user.ID, event.Ante)
+    err = db.BetRollAddPlayer(guild.ID, me)
+    if err!=nil {
+        fmt.Fprintf(w, db_error_msg)
+        w.Flush()
+        return buf.String()
+    }
+    fmt.Fprintf(w, success_msg)
+    w.Flush()
     return buf.String()
 }
 
@@ -281,7 +368,7 @@ func printBetRollTime(time int, ante int) string {
     alert:= ""
     w.Init(buf, 0, 4, 0, ' ', 0)
     if time == 30 {
-        alert = "Dice Roll in **"+strconv.Itoa(time)+" seconds**.  Ante is **"+strconv.Itoa(time)+" bits**. !!bid *result* to bid"
+        alert = "Dice Roll in **"+strconv.Itoa(time)+" seconds**.  Ante is **"+strconv.Itoa(ante)+" bits**. !!bid *result* to bid"
     } else if time != 0 {
         alert = "Dice Roll in **"+strconv.Itoa(time)+" seconds**."
     } else {

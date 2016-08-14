@@ -74,6 +74,20 @@ var DICEROLL *TextCollection = &TextCollection{
     Function: rollDice,
 }
 
+var BETROLL *TextCollection = &TextCollection{
+    Commands: []string{
+        "betroll",
+    },
+    Function: betRoll,
+}
+
+var BID *TextCollection = &TextCollection{
+    Commands: []string{
+        "bid",
+    },
+    Function: bid,
+}
+
 var TEXTCMDS []*TextCollection = []*TextCollection{
     SOUNDCOMMANDS,
     GITHUB,
@@ -82,4 +96,6 @@ var TEXTCMDS []*TextCollection = []*TextCollection{
     STATS,
     BITS,
     DICEROLL,
+    BETROLL,
+    BID,
 }

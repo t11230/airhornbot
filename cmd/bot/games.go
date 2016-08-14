@@ -11,7 +11,9 @@ import (
     "time"
     log "github.com/Sirupsen/logrus"
 )
-
+const (
+    RoundTime = 30
+)
 type Player struct {
     UserID string
     Bid int
@@ -141,8 +143,10 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
         w.Flush()
         return buf.String()
     } else if len(args)>2 {
+        //doBetRollRound(guild, cid string, maxnum, ante, RoundTime)
         ante, err = strconv.Atoi(args[1])
         if err != nil {
+            //user entered non-numerical ante
             fmt.Fprintf(w, ante_error_msg)
             w.Flush()
             return buf.String()
@@ -150,6 +154,7 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
         log.Info(ante)
         err = db.SetBetRollAnte(guild.ID, ante)
         if err != nil {
+            //failed to set betroll ante
             fmt.Fprintf(w, db_error_msg)
             w.Flush()
             return buf.String()
@@ -166,6 +171,7 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
         if strings.HasPrefix(args[2], "d") {
             maxnum, err = strconv.Atoi(strings.Replace(args[2], "d", "", 1))
             if err!=nil {
+                //user entered non-numerical number of die sides
                 fmt.Fprintf(w, dice_error_msg)
                 w.Flush()
                 return buf.String()
@@ -377,4 +383,76 @@ func printBetRollTime(time int, ante int) string {
     fmt.Fprintf(w, alert)
     w.Flush()
     return buf.String()
+}
+
+func doBetRollRound(guild *discordgo.Guild, cid string, maxnum int, ante int, roundtime int) {
+    var winnerIDs []string
+    win_result := "Winner(s):\n"
+    payout_result := "Payout: "
+    db := dbGetSession(guild.ID)
+    err := db.SetBetRollAnte(guild.ID, ante)
+    payout := 0
+    if err != nil {
+        log.Error("Failed to set BetRoll Ante")
+        // TODO: cleanup betroll entry
+        return
+    }
+    for roundtime>=0 {
+        printBetRollTime(roundtime, ante)
+        time.Sleep(10*time.Second)
+        roundtime -= 10
+    }
+    players := db.GetPlayers(guild.ID)
+    pool := ante * len(players)
+    r := rand.Intn(maxnum) + 1
+    result := getDieString(maxnum, r)
+    for _,player := range(players) {
+        if player.Bid == r {
+            winnerIDs = append(winnerIDs, player.UserID)
+        }
+    }
+    if len(winnerIDs) > 0 {
+        payout = pool/len(winnerIDs)
+    }
+    payout_result = payout_result + strconv.Itoa(payout) + " bits"
+    for _,winner := range(winnerIDs) {
+        db.IncBitStats(winner, payout)
+        win_result = win_result + utilGetPreferredName(guild, winner) + "\n"
+    }
+    err = db.BetRollClose(guild.ID)
+    if err!=nil {
+        log.Error("Failed to close BetRoll")
+        // TODO: cleanup betroll entry
+        return
+    }
+    w := &tabwriter.Writer{}
+    buf := &bytes.Buffer{}
+    w.Init(buf, 0, 4, 0, ' ', 0)
+    fmt.Fprintf(w, "```\n")
+    fmt.Fprintf(w, result)
+    fmt.Fprintf(w, "```\n")
+    fmt.Fprintf(w, "```\n")
+    fmt.Fprintf(w, win_result)
+    fmt.Fprintf(w, payout_result)
+    fmt.Fprintf(w, "```\n")
+    w.Flush()
+    discord.ChannelMessageSend(cid, buf.String())
+}
+
+func getDieString(maxnum int, r int) string {
+    if isValidDie(maxnum) {
+        if maxnum == 6 {
+            return drawD6(r)
+        } else if (maxnum == 4) || (maxnum == 8) {
+            return drawD4_D8(r)
+        } else if maxnum == 10 {
+            return drawD10(r)
+        } else if maxnum == 12 {
+            return drawD12(r)
+        } else if maxnum == 20 {
+            return drawD20(r)
+        }
+    }
+
+    return "The result is: "+strconv.Itoa(r)
 }

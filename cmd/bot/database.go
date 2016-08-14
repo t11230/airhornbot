@@ -261,11 +261,24 @@ func (db *BotDatabase) GameTrackIncGameEntry(userID string, game string, inc int
     return nil
 }
 
-func (db *BotDatabase) GameTrackGetStats(userID string, count int) []GameTrackEntry {
+func (db *BotDatabase) GameTrackGetUserStats(userID string, count int) []GameTrackEntry {
     c := db.GetGameTrackCollection()
 
     var result []GameTrackEntry
     err := c.Find(bson.M{"userid" : userID}).Sort("-time").Limit(count).All(&result)
+    if err != nil {
+        log.Error(err)
+        return nil
+    }
+
+    return result
+}
+
+func (db *BotDatabase) GameTrackGetTopTimes(count int) []GameTrackEntry {
+    c := db.GetGameTrackCollection()
+
+    var result []GameTrackEntry
+    err := c.Find(nil).Sort("-time").Limit(count).All(&result)
     if err != nil {
         log.Error(err)
         return nil

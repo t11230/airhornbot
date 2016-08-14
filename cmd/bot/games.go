@@ -22,7 +22,7 @@ type BetRoll struct {
     Ante int
 }
 
-func rollDice(guild *discordgo.Guild, user *discordgo.User, args []string) string{
+func rollDice(guild *discordgo.Guild, message *discordgo.Message, args []string) string{
     roll_help := `**roll usage:** roll *dietype (optional)*
     This command initiates a dice roll.
     The second optional argument specifies a type of die for the roll.
@@ -90,7 +90,7 @@ func rollDice(guild *discordgo.Guild, user *discordgo.User, args []string) strin
     return buf.String()
 }
 
-func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string {
+func betRoll(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
     log.Info("Placing Betroll")
     db := dbGetSession(guild.ID)
     event := db.GetActiveBetRoll(guild.ID)
@@ -270,7 +270,8 @@ func betRoll(guild *discordgo.Guild, user *discordgo.User, args []string) string
     return buf.String()
 }
 
-func bid(guild *discordgo.Guild, user *discordgo.User, args []string) string {
+func bid(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
+    user := message.Author
     db := dbGetSession(guild.ID)
     event := db.GetActiveBetRoll(guild.ID)
     w := &tabwriter.Writer{}

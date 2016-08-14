@@ -14,9 +14,13 @@ type GameTrackEntry struct {
     Time int
 }
 
+func gpHandleStatsCommand(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
+    return ""
+}
+
 func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string { 
     db := dbGetSession(guild.ID)
-    entries := db.GameTrackGetStats(user.ID, 10)
+    entries := db.GameTrackGetUserStats(user.ID, 10)
 
     if len(entries) == 0 {
         return "No stats. Git gud scrub."

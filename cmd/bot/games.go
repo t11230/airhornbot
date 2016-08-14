@@ -94,21 +94,10 @@ func rollDice(guild *discordgo.Guild, message *discordgo.Message, args []string)
 
 func betRoll(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
     log.Info("Placing Betroll")
-    db := dbGetSession(guild.ID)
-    event := db.GetActiveBetRoll(guild.ID)
-    pool := 0
-    ante := 0
-    payout := 0
-    draw := false
-    r:=0
-    maxnum:=0
     w := &tabwriter.Writer{}
     buf := &bytes.Buffer{}
-    result := ""
-    win_result := "Winner(s):\n"
-    payout_result := "Payout: "
     w.Init(buf, 0, 4, 0, ' ', 0)
-    var err error
+
     betroll_help := `**betroll usage:** betroll *ante* *dietype (optional)*
     This command initiates a bet on a dice roll. The second argument is the ante that all participants must pay into the pool.
     The third optional argument specifies a type of die for the roll.
@@ -120,160 +109,44 @@ func betRoll(guild *discordgo.Guild, message *discordgo.Message, args []string) 
     **d12:** 12-sided die.
     **d20:** 20-sided die.
     **other:** random integer generator between 1 and input.`
-    ante_error_msg := "**ERROR:** Non-numerical ante submitted.  Please don't be a smartass."
-    dice_error_msg := "**ERROR:** Non-numerical dice submitted.  Please don't be a smartass."
-    event_error_msg := "**ERROR:** BetRoll Event already in progress."
-    db_error_msg := "**ERROR:** Database error."
-    //success_msg := ""
-    var players []Player
-    var winnerIDs []string
+
+    db := dbGetSession(guild.ID)
+    event := db.GetActiveBetRoll(guild.ID)
     if event != nil {
-        fmt.Fprintf(w, event_error_msg)
-        w.Flush()
-        return buf.String()
-    }
-    err = db.BetRollOpen(guild.ID)
-    if err != nil {
-        fmt.Fprintf(w, db_error_msg)
-        w.Flush()
-        return buf.String()
-    }
-    if (len(args)<2) || (len(args)>3) {
-        fmt.Fprintf(w, betroll_help)
-        w.Flush()
-        return buf.String()
-    } else if len(args)>2 {
-        //doBetRollRound(guild, cid string, maxnum, ante, RoundTime)
-        ante, err = strconv.Atoi(args[1])
-        if err != nil {
-            //user entered non-numerical ante
-            fmt.Fprintf(w, ante_error_msg)
-            w.Flush()
-            return buf.String()
-        }
-        log.Info(ante)
-        err = db.SetBetRollAnte(guild.ID, ante)
-        if err != nil {
-            //failed to set betroll ante
-            fmt.Fprintf(w, db_error_msg)
-            w.Flush()
-            return buf.String()
-        }
-        printBetRollTime(30, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(20, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(10, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(0, ante)
-        players = db.GetPlayers(guild.ID)
-        pool = ante * len(players)
-        if strings.HasPrefix(args[2], "d") {
-            maxnum, err = strconv.Atoi(strings.Replace(args[2], "d", "", 1))
-            if err!=nil {
-                //user entered non-numerical number of die sides
-                fmt.Fprintf(w, dice_error_msg)
-                w.Flush()
-                return buf.String()
-            }
-            if isValidDie(maxnum) {
-                draw = true
-            }
-        } else {
-            if err!=nil {
-                fmt.Fprintf(w, dice_error_msg)
-                w.Flush()
-                return buf.String()
-            }
-        }
-        r = rand.Intn(maxnum) + 1
-        if draw {
-            if maxnum == 6 {
-                result = drawD6(r)
-            } else if (maxnum == 4) || (maxnum == 8) {
-                result = drawD4_D8(r)
-            } else if maxnum == 10 {
-                result = drawD10(r)
-            } else if maxnum == 12 {
-                result = drawD12(r)
-            } else if maxnum == 20 {
-                result = drawD20(r)
-            }
-        } else{
-            result = "The result is: "+strconv.Itoa(r)
-        }
-        for _,player := range(players) {
-            if player.Bid == r {
-                winnerIDs = append(winnerIDs, player.UserID)
-            }
-        }
-        if len(winnerIDs) == 0 {
-            payout = 0
-        } else {
-            payout = pool/len(winnerIDs)
-        }
-        payout_result = payout_result + strconv.Itoa(payout) + " bits"
-        for _,winner := range(winnerIDs) {
-            db.IncBitStats(winner, payout)
-            win_result = win_result + utilGetPreferredName(guild, winner) + "\n"
-        }
-    }else {
-        ante, err = strconv.Atoi(args[1])
-        if err != nil {
-            fmt.Fprintf(w, ante_error_msg)
-            w.Flush()
-            return buf.String()
-        }
-        err = db.SetBetRollAnte(guild.ID, ante)
-        if err != nil {
-            fmt.Fprintf(w, db_error_msg)
-            w.Flush()
-            return buf.String()
-        }
-        printBetRollTime(30, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(20, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(10, ante)
-        time.Sleep(10*time.Second)
-        printBetRollTime(0, ante)
-        players = db.GetPlayers(guild.ID)
-        pool = ante * len(players)
-        maxnum = 6
-        r = rand.Intn(6) + 1
-        result = drawD6(r)
-        for _,player := range(players) {
-            if player.Bid == r {
-                winnerIDs = append(winnerIDs, player.UserID)
-            }
-        }
-        if len(winnerIDs) == 0 {
-            payout = 0
-        } else {
-            payout = pool/len(winnerIDs)
-        }
-        payout_result = payout_result + strconv.Itoa(payout) + " bits"
-        for _,winner := range(winnerIDs) {
-            db.IncBitStats(winner, payout)
-            win_result = win_result + "     " + utilGetPreferredName(guild, winner) + "\n"
-        }
-    }
-    err = db.BetRollClose(guild.ID)
-    if err!=nil {
-        fmt.Fprintf(w, db_error_msg)
+        fmt.Fprintf(w, "**ERROR:** BetRoll Event already in progress.")
         w.Flush()
         return buf.String()
     }
 
-    fmt.Fprintf(w, "```\n")
-    fmt.Fprintf(w, result)
-    fmt.Fprintf(w, "```\n")
-    fmt.Fprintf(w, "```\n")
-    fmt.Fprintf(w, win_result)
-    fmt.Fprintf(w, payout_result)
-    fmt.Fprintf(w, "```\n")
-    w.Flush()
-    return buf.String()
+    if (len(args)<2) || (len(args)>3) {
+        fmt.Fprintf(w, betroll_help)
+        w.Flush()
+        return buf.String()
+    }
+
+    //6-sided die is default
+    maxnum :=6
+
+    if len(args)>2 {
+        var err error
+        maxnum, err = strconv.Atoi(strings.Replace(args[2], "d", "", 1))
+        if err!=nil {
+            //user entered non-numerical number of die sides
+            fmt.Fprintf(w, "**ERROR:** Non-numerical dice submitted.  Please don't be a smartass.")
+            w.Flush()
+            return buf.String()
+        }
+    }
+    ante, err := strconv.Atoi(args[1])
+    if err != nil {
+        //user entered non-numerical ante
+        fmt.Fprintf(w, "**ERROR:** Non-numerical ante submitted.  Please don't be a smartass.")
+        w.Flush()
+        return buf.String()
+    }
+    go doBetRollRound(guild, message.ChannelID, maxnum, ante, RoundTime)
+
+    return "Betting Round Started!"
 }
 
 func bid(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
@@ -301,6 +174,13 @@ func bid(guild *discordgo.Guild, message *discordgo.Message, args []string) stri
         w.Flush()
         return buf.String()
     }
+    for _, b := range event.Players {
+        if b.UserID == user.ID {
+            fmt.Fprintf(w, "You can only bid once!")
+            w.Flush()
+            return buf.String()
+        }
+    }
     var me Player
     me.UserID = user.ID
     me.Bid, err = strconv.Atoi(args[1])
@@ -315,7 +195,6 @@ func bid(guild *discordgo.Guild, message *discordgo.Message, args []string) stri
         w.Flush()
         return buf.String()
     }
-    db.DecBitStats(user.ID, event.Ante)
     err = db.BetRollAddPlayer(guild.ID, me)
     if err!=nil {
         fmt.Fprintf(w, db_error_msg)
@@ -387,22 +266,31 @@ func printBetRollTime(time int, ante int) string {
 }
 
 func doBetRollRound(guild *discordgo.Guild, cid string, maxnum int, ante int, roundtime int) {
+    log.Info("Starting BetRoll Round")
     var winnerIDs []string
     win_result := "Winner(s):\n"
     payout_result := "Payout: "
     db := dbGetSession(guild.ID)
-    err := db.SetBetRollAnte(guild.ID, ante)
+    err := db.BetRollOpen(guild.ID)
+    if err != nil {
+        log.Error("Failed to open BetRoll")
+        // TODO: cleanup betroll entry
+        return
+    }
+    err = db.SetBetRollAnte(guild.ID, ante)
     payout := 0
     if err != nil {
         log.Error("Failed to set BetRoll Ante")
         // TODO: cleanup betroll entry
         return
     }
-    for roundtime>=0 {
-        printBetRollTime(roundtime, ante)
+    for roundtime>0 {
+        discord.ChannelMessageSend(cid, printBetRollTime(roundtime, ante))
         time.Sleep(10*time.Second)
         roundtime -= 10
     }
+    //send message that round is starting at roundtime == 0
+    discord.ChannelMessageSend(cid, printBetRollTime(roundtime, ante))
     players := db.GetPlayers(guild.ID)
     pool := ante * len(players)
     r := rand.Intn(maxnum) + 1

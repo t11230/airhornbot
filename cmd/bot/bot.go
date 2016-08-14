@@ -323,8 +323,6 @@ func main() {
         }
     }
 
-    dbOpen("./Drumpf.db")
-
     // Open new database
     log.Info("Opening MongoDB")
     dbMongoOpen("localhost")

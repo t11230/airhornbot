@@ -101,10 +101,6 @@ func (db *BotDatabase) SetBitStats(userID string, value int) {
 
 func (db *BotDatabase) IncBitStats(userID string, value int) {
     update := bson.M{
-        "$set": BitStat{
-            UserID: userID,
-            BitValue: value,
-        },
         "$inc": bson.M{
             "bitvalue": value,
         },
@@ -241,47 +237,46 @@ func (db *BotDatabase) BetRollClose(guildID string) error {
 
 
 /* Game tracking functions */
-func (db *BotDatabase) GetGameTrackCollection(guildID string) *mgo.Collection {
+func (db *BotDatabase) GetGameTrackCollection() *mgo.Collection {
     return db.Session.DB(fmt.Sprintf("%s-%s",
                          MongoBaseDBName,
-                         guildID)).C(MongoGameTrackCollection)
+                         db.GuildID)).C(MongoGameTrackCollection)
 }
 
-func (db *BotDatabase) GameTrackFindOrAddGame(guildID string, name string) *GameTrackGame {
-    c := db.GetGameTrackCollection(guildID)
+func (db *BotDatabase) GameTrackIncGameEntry(userID string, game string, inc int) error {
+    c := db.GetGameTrackCollection()
 
-    // TODO: Rewrite this
     search := bson.M{
-        "type": GameTrackTypeGame,
-        "name": name,
+        "userid" : userID,
+        "game": game,
     }
 
-    result := &GameTrackGame{}
-    err := c.Find(search).One(&result)
-    if err == nil {
-        return result
+    update := bson.M{
+        "$inc": bson.M{
+            "time": inc,
+        },
     }
 
-    newGame := &GameTrackGame{
-        Type: GameTrackTypeGame,
-        Name: name,
-        NumPlayers: 0,
+    _, err := c.Upsert(search, update)
+    if err != nil {
+        log.Error(err)
+        return err
     }
+    return nil
+}
 
-    err = c.Insert(newGame)
+func (db *BotDatabase) GameTrackGetStats(userID string, count int) []GameTrackEntry {
+    c := db.GetGameTrackCollection()
+
+    var result []GameTrackEntry
+    err := c.Find(bson.M{"userid" : userID}).Sort("-time").Limit(count).All(&result)
     if err != nil {
         log.Error(err)
         return nil
     }
 
-    err = c.Find(search).One(&result)
-    if err != nil {
-        log.Error(err)
-        return nil
-    }
     return result
 }
-
 
 /* Old SQLite DB functions */
 func dbOpen(dbFile string) {

@@ -6,32 +6,19 @@ import (
     "text/tabwriter"
 
     "github.com/bwmarrin/discordgo"
-
-    "gopkg.in/mgo.v2/bson"
 )
 
-type GameTrackGame struct {
-    Type int
-    Name string
-    NumPlayers int
-}
-
 type GameTrackEntry struct {
-    Type int
     UserID string
-    GameID bson.ObjectId
+    Game string
     Time int
 }
 
-const (
-    GameTrackTypeGame = iota
-    GameTrackTypeEntry = iota
-)
-
 func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string { 
-    games, times := dbGetGameStats(user.ID)
+    db := dbGetSession(guild.ID)
+    entries := db.GameTrackGetStats(user.ID, 10)
 
-    if len(games) == 0 {
+    if len(entries) == 0 {
         return "No stats. Git gud scrub."
     }
 
@@ -42,8 +29,8 @@ func gpPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) s
     // fmt.Fprintf(w, "%s Game-Time Stats:\n", ) // Not sure how to get nicknames...
     fmt.Fprintf(w, "```\n")
 
-    for i, game := range(games) {
-        fmt.Fprintf(w, "%s: \t %.2f Hours\n", game, float64(times[i]) / (60.0*60.0))
+    for _, entry := range(entries) {
+        fmt.Fprintf(w, "%s: \t %.2f Hours\n", entry.Game, float64(entry.Time) / (60.0*60.0))
     }
     
     fmt.Fprintf(w, "```\n")

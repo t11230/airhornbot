@@ -13,7 +13,8 @@ type BitStat struct {
     BitValue int
 }
 
-func bitsPrintStats(guild *discordgo.Guild, user *discordgo.User, args []string) string {
+func bitsPrintStats(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
+    user := message.Author
     db := dbGetSession(guild.ID)
     var bits BitStat
     var bitslist []BitStat

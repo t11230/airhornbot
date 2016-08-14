@@ -237,7 +237,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     for _, tcoll := range TEXTCMDS {
         if utilScontains(baseCommand, tcoll.Commands...) {
             s.ChannelMessageSend(m.ChannelID,
-                                    tcoll.Function(guild, m.Author, parts))
+                                    tcoll.Function(guild, m.Message, parts))
         }
     }
 

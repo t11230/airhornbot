@@ -122,7 +122,7 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
     } else if utilScontains(parts[1], "aps") {
         // s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
         // go rdCalculateAirhornsPerSecond(m.ChannelID)
-        
+
         c,_ := s.UserChannelCreate(m.Author.ID)
         s.ChannelMessageSend(c.ID, ":ok_hand: give me a private message m8")
 
@@ -186,7 +186,8 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
     if ((time.Now().UTC().Weekday().String() == "Monday") && (time.Now().UTC().Hour() > 20)) || (time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() < 5) {
         //give weekly bit bonus
         message:= giveWeeklyBitBonus(guild, member.User.ID)
-        s.ChannelMessageSend(member.User.ID, message)
+        c,_ := s.UserChannelCreate(member.User.ID)
+        s.ChannelMessageSend(c.ID, message)
     }
 
 }

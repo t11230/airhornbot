@@ -119,8 +119,11 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
         airhornBomb(m.ChannelID, g, utilGetMentioned(s, m), parts[3])
 
     } else if utilScontains(parts[1], "aps") {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        go rdCalculateAirhornsPerSecond(m.ChannelID)
+        // s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+        // go rdCalculateAirhornsPerSecond(m.ChannelID)
+        
+        c,_ := s.UserChannelCreate(m.Author.ID)
+        s.ChannelMessageSend(c.ID, ":ok_hand: give me a private message m8")
 
     } else if utilScontains(parts[1], "save_messages") && len(parts) >= 4 {
         s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")

@@ -33,6 +33,7 @@ var (
 
     // Temporary bool for enabling welcome
     WelcomeEnabled bool
+
 )
 
 func init() {
@@ -121,7 +122,7 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
     } else if utilScontains(parts[1], "aps") {
         // s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
         // go rdCalculateAirhornsPerSecond(m.ChannelID)
-        
+
         c,_ := s.UserChannelCreate(m.Author.ID)
         s.ChannelMessageSend(c.ID, ":ok_hand: give me a private message m8")
 
@@ -147,7 +148,7 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 }
 
 func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
-    if m.ChannelID == "" || !WelcomeEnabled {
+    if m.ChannelID == "" {
         return
     }
 
@@ -172,13 +173,23 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
         return
     }
 
-    var sound *Sound
-    for _, s := range MEMES.Sounds {
-        if "welcomebdc" == s.Name {
-            sound = s
+    if WelcomeEnabled {
+        var sound *Sound
+        for _, s := range MEMES.Sounds {
+            if "welcomebdc" == s.Name {
+                sound = s
+            }
         }
+        go sndEnqueuePlay(member.User, guild, MEMES, sound)
     }
-    go sndEnqueuePlay(member.User, guild, MEMES, sound)
+
+    if ((time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() > 23)) || (time.Now().UTC().Weekday().String() == "Wednesday") && (time.Now().UTC().Hour() < 5) {
+        //give weekly bit bonus
+        message:= giveWeeklyBitBonus(guild, member.User.ID)
+        c,_ := s.UserChannelCreate(member.User.ID)
+        s.ChannelMessageSend(c.ID, message)
+    }
+
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -369,12 +380,12 @@ func main() {
     // if err != nil {
     //     log.Error("NEB")
     // }
-    
+
     db.GameTrackIncGameEntry("2", "Game1", 5)
     db.GameTrackIncGameEntry("2", "Game2", 6)
     db.GameTrackIncGameEntry("2", "Game3", 7)
     db.GameTrackIncGameEntry("2", "Game4", 8)
-    
+
 
     // Create a discord session
     log.Info("Starting discord session...")

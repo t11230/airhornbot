@@ -4,6 +4,7 @@ import (
     "bytes"
     "fmt"
     "text/tabwriter"
+    log "github.com/Sirupsen/logrus"
 
     "github.com/bwmarrin/discordgo"
 )
@@ -63,5 +64,23 @@ func bitsPrintStats(guild *discordgo.Guild, message *discordgo.Message, args []s
     fmt.Fprintf(w, "```\n")
     w.Flush()
     return buf.String()
-    return ""
+}
+
+func giveWeeklyBitBonus(guild *discordgo.Guild, userID string) string {
+    db := dbGetSession(guild.ID)
+    mybits := db.GetBitStats(userID)
+    if mybits == nil {
+        db.SetBitStats(userID, 50)
+        mybits = db.GetBitStats(userID)
+    } else {
+        db.IncBitStats(userID, 50)
+        mybits = db.GetBitStats(userID)
+    }
+    w := &tabwriter.Writer{}
+    buf := &bytes.Buffer{}
+    log.Info("Giving Weekly Bonus")
+    w.Init(buf, 0, 4, 0, ' ', 0)
+    fmt.Fprintf(w, "Welcome **%s**, you get 50 bits for joining this week!\n You now have **%d bits**\n", utilGetPreferredName(guild, userID), mybits.BitValue)
+    w.Flush()
+    return buf.String()
 }

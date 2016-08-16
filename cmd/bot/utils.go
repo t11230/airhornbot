@@ -144,3 +144,7 @@ func utilGetPreferredName(guild *discordgo.Guild, UserID string) string {
     }
     return "Failed to get Preferred Name"
 }
+
+func utilInTimeSpan(start, end, check time.Time) bool {
+    return check.After(start) && check.Before(end)
+}

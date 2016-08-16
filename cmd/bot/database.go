@@ -3,6 +3,7 @@ package main
 import (
     "errors"
     "fmt"
+    "time"
 
     log "github.com/Sirupsen/logrus"
 
@@ -15,6 +16,7 @@ const (
     MongoBitsCollection = "bits"
     MongoGameTrackCollection = "gametrack"
     MongoBetRollCollection = "betroll"
+    MongoVoiceJoinCollection = "voicejoin"
 )
 
 var (
@@ -24,6 +26,11 @@ var (
 type BotDatabase struct {
     Session *mgo.Session
     GuildID string
+}
+
+type VoiceJoinEntry struct {
+    UserID string
+    Dates []int64
 }
 
 /* New Mongo DB functions */
@@ -285,4 +292,48 @@ func (db *BotDatabase) GameTrackGetTopTimes(count int) []GameTrackEntry {
     }
 
     return result
+}
+
+/* Weekly call tracking functions */
+func (db *BotDatabase) GetVoiceJoinCollection() *mgo.Collection {
+    return db.Session.DB(fmt.Sprintf("%s-%s",
+                         MongoBaseDBName,
+                         db.GuildID)).C(MongoVoiceJoinCollection)
+}
+
+func (db *BotDatabase) GetVoiceJoinEntry(userID string) *VoiceJoinEntry {
+    c := db.GetVoiceJoinCollection()
+
+    search := bson.M{
+        "userid" : userID,
+    }
+
+    var result VoiceJoinEntry
+    err := c.Find(search).One(&result)
+    if err != nil {
+        log.Error(err)
+        return nil
+    }
+    return &result
+}
+
+func (db *BotDatabase) UpsertVoiceJoinEntry(userID string) error {
+    c := db.GetVoiceJoinCollection()
+
+    search := bson.M{
+        "userid" : userID,
+    }
+
+    update := bson.M{
+        "$push": bson.M{
+            "dates": time.Now().UTC().Unix(),
+        },
+    }
+
+    _, err := c.Upsert(search, update)
+    if err != nil {
+        log.Error(err)
+        return err
+    }
+    return nil
 }

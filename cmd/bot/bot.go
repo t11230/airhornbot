@@ -183,7 +183,7 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
         go sndEnqueuePlay(member.User, guild, MEMES, sound)
     }
 
-    if ((time.Now().UTC().Weekday().String() == "Monday") && (time.Now().UTC().Hour() > 20)) || (time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() < 5) {
+    if ((time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() > 23)) || (time.Now().UTC().Weekday().String() == "Wednesday") && (time.Now().UTC().Hour() < 5) {
         //give weekly bit bonus
         message:= giveWeeklyBitBonus(guild, member.User.ID)
         c,_ := s.UserChannelCreate(member.User.ID)

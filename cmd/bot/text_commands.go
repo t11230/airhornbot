@@ -88,6 +88,7 @@ var BID *TextCollection = &TextCollection{
     Function: bid,
 }
 
+
 var TEXTCMDS []*TextCollection = []*TextCollection{
     SOUNDCOMMANDS,
     GITHUB,

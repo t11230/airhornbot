@@ -265,6 +265,14 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
         }
     }
 
+    // Process role based commands
+    for _, rcoll := range ROLECMDS {
+        if utilScontains(baseCommand, rcoll.Commands...) {
+            s.ChannelMessageSend(m.ChannelID,
+                                    rcoll.Function(s, guild, m.Message, parts))
+        }
+    }
+
     // Process sound commands
     for _, coll := range COLLECTIONS {
         if utilScontains(baseCommand, coll.Commands...) {

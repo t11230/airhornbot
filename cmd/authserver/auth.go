@@ -22,10 +22,13 @@ import (
 
 var (
 	// Permission Constants
-	READ_MESSAGES = 1024
-	SEND_MESSAGES = 2048
-	CONNECT       = 1048576
-	SPEAK         = 2097152
+	READ_MESSAGES 		= 1024
+	SEND_MESSAGES 		= 2048
+	CONNECT       		= 1048576
+	SPEAK         		= 2097152
+	CHANGE_NICKNAME 	= 0x04000000
+	MANAGE_NICKNAMES 	= 0x08000000
+	MANAGE_ROLES 			= 0x10000000
 
 	// Redis client (for stats)
 	rcli *redis.Client
@@ -139,7 +142,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	// OR the permissions we want
-	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK
+	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK | CHANGE_NICKNAME | MANAGE_NICKNAMES | MANAGE_ROLES
 
 	// Return a redirect to the ouath provider
 	url := oauthConf.AuthCodeURL(session.Values["state"].(string), oauth2.AccessTypeOnline)

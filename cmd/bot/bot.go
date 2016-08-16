@@ -33,6 +33,7 @@ var (
 
     // Temporary bool for enabling welcome
     WelcomeEnabled bool
+
 )
 
 func init() {
@@ -144,7 +145,7 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 }
 
 func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
-    if m.ChannelID == "" || !WelcomeEnabled {
+    if m.ChannelID == "" {
         return
     }
 
@@ -169,13 +170,22 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
         return
     }
 
-    var sound *Sound
-    for _, s := range MEMES.Sounds {
-        if "welcomebdc" == s.Name {
-            sound = s
+    if WelcomeEnabled {
+        var sound *Sound
+        for _, s := range MEMES.Sounds {
+            if "welcomebdc" == s.Name {
+                sound = s
+            }
         }
+        go sndEnqueuePlay(member.User, guild, MEMES, sound)
     }
-    go sndEnqueuePlay(member.User, guild, MEMES, sound)
+
+    if ((time.Now().UTC().Weekday().String() == "Monday") && (time.Now().UTC().Hour() > 20)) || (time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() < 5) {
+        //give weekly bit bonus
+        message:= giveWeeklyBitBonus(guild, member.User.ID)
+        s.ChannelMessageSend(member.User.ID, message)
+    }
+
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -366,12 +376,12 @@ func main() {
     // if err != nil {
     //     log.Error("NEB")
     // }
-    
+
     db.GameTrackIncGameEntry("2", "Game1", 5)
     db.GameTrackIncGameEntry("2", "Game2", 6)
     db.GameTrackIncGameEntry("2", "Game3", 7)
     db.GameTrackIncGameEntry("2", "Game4", 8)
-    
+
 
     // Create a discord session
     log.Info("Starting discord session...")

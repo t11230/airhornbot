@@ -13,6 +13,7 @@ import (
 )
 const (
     RoundTime = 30
+    MinAnte = 5
 )
 type Player struct {
     UserID string
@@ -144,6 +145,7 @@ func betRoll(guild *discordgo.Guild, message *discordgo.Message, args []string) 
         w.Flush()
         return buf.String()
     }
+
     go doBetRollRound(guild, message.ChannelID, maxnum, ante, RoundTime)
 
     return "Betting Round Started!"
@@ -274,14 +276,18 @@ func doBetRollRound(guild *discordgo.Guild, cid string, maxnum int, ante int, ro
     err := db.BetRollOpen(guild.ID)
     if err != nil {
         log.Error("Failed to open BetRoll")
-        // TODO: cleanup betroll entry
         return
+    }
+    if ante < MinAnte {
+        ante = MinAnte
+        discord.ChannelMessageSend(cid, "**Ante Below Minimum (5):** Ante has been set to 5")
     }
     err = db.SetBetRollAnte(guild.ID, ante)
     payout := 0
     if err != nil {
         log.Error("Failed to set BetRoll Ante")
         // TODO: cleanup betroll entry
+        db.BetRollClose(guild.ID)
         return
     }
     for roundtime>0 {
@@ -311,7 +317,6 @@ func doBetRollRound(guild *discordgo.Guild, cid string, maxnum int, ante int, ro
     err = db.BetRollClose(guild.ID)
     if err!=nil {
         log.Error("Failed to close BetRoll")
-        // TODO: cleanup betroll entry
         return
     }
     w := &tabwriter.Writer{}

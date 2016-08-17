@@ -154,16 +154,6 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
         return
     }
 
-    if WelcomeEnabled {
-        var sound *Sound
-        for _, s := range MEMES.Sounds {
-            if "welcomebdc" == s.Name {
-                sound = s
-            }
-        }
-        go sndEnqueuePlay(member.User, guild, MEMES, sound)
-    }
-
     startTime := time.Date(2016, time.August, 16, 23, 0, 0, 0, time.UTC)
     endTime := time.Date(2016, time.August, 17, 5, 0, 0, 0, time.UTC)
 
@@ -183,10 +173,21 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
 
         db.UpsertVoiceJoinEntry(member.User.ID)
 
-        //give weekly bit bonus
+        // Give weekly bit bonus
         message:= giveWeeklyBitBonus(guild, member.User.ID)
         c,_ := s.UserChannelCreate(member.User.ID)
         s.ChannelMessageSend(c.ID, message)
+
+        // Welcome them to the family
+        if WelcomeEnabled {
+            var sound *Sound
+            for _, s := range MEMES.Sounds {
+                if "welcomebdc" == s.Name {
+                    sound = s
+                }
+            }
+            go sndEnqueuePlay(member.User, guild, MEMES, sound)
+        }
     }
 }
 

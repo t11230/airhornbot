@@ -145,6 +145,7 @@ func utilGetPreferredName(guild *discordgo.Guild, UserID string) string {
     return "Failed to get Preferred Name"
 }
 
+
 func utilGetMember(guild *discordgo.Guild, UserID string) *discordgo.Member {
     for _, member := range(guild.Members) {
         if member.User.ID == UserID {
@@ -152,4 +153,8 @@ func utilGetMember(guild *discordgo.Guild, UserID string) *discordgo.Member {
         }
     }
     return nil
+}
+
+func utilInTimeSpan(start, end, check time.Time) bool {
+    return check.After(start) && check.Before(end)
 }

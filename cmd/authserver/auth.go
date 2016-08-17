@@ -28,7 +28,8 @@ var (
 	SPEAK         		= 2097152
 	CHANGE_NICKNAME 	= 0x04000000
 	MANAGE_NICKNAMES 	= 0x08000000
-	MANAGE_ROLES 			= 0x10000000
+	MANAGE_ROLES 		= 0x10000000
+	MANAGE_GUILD		= 0x00000020
 
 	// Redis client (for stats)
 	rcli *redis.Client
@@ -142,7 +143,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	// OR the permissions we want
-	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK | CHANGE_NICKNAME | MANAGE_NICKNAMES | MANAGE_ROLES
+	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK | CHANGE_NICKNAME | MANAGE_NICKNAMES | MANAGE_ROLES | MANAGE_GUILD
 
 	// Return a redirect to the ouath provider
 	url := oauthConf.AuthCodeURL(session.Values["state"].(string), oauth2.AccessTypeOnline)

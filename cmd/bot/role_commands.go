@@ -25,6 +25,14 @@ var COLOR *RoleCollection = &RoleCollection{
     Function: changeColor,
 }
 
+var COLORCREATE *RoleCollection = &RoleCollection{
+    Commands: []string{
+        "create_colors",
+    },
+    Function: createColors,
+}
+
 var ROLECMDS []*RoleCollection = []*RoleCollection{
     COLOR,
+    COLORCREATE,
 }

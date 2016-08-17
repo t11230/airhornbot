@@ -104,45 +104,26 @@ func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs st
 
 // Handles bot operator messages, should be refactored (lmao)
 func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, parts []string, g *discordgo.Guild) {
+    c,_ := s.UserChannelCreate(m.Author.ID)
+
     if utilScontains(parts[1], "status") {
-        rdDisplayBotStats(m.ChannelID)
+        rdDisplayBotStats(c.ID)
 
     } else if utilScontains(parts[1], "stats") {
         if len(m.Mentions) >= 2 {
-            rdDisplayUserStats(m.ChannelID, utilGetMentioned(s, m).ID)
+            rdDisplayUserStats(c.ID, utilGetMentioned(s, m).ID)
         } else if len(parts) >= 3 {
-            rdDisplayUserStats(m.ChannelID, parts[2])
+            rdDisplayUserStats(c.ID, parts[2])
         } else {
-            rdDisplayServerStats(m.ChannelID, g.ID)
+            rdDisplayServerStats(c.ID, g.ID)
         }
 
-    } else if utilScontains(parts[1], "bomb") && len(parts) >= 4 {
-        airhornBomb(m.ChannelID, g, utilGetMentioned(s, m), parts[3])
-
     } else if utilScontains(parts[1], "aps") {
-        // s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        // go rdCalculateAirhornsPerSecond(m.ChannelID)
+        s.ChannelMessageSend(c.ID, ":ok_hand: give me a sec m8")
+        go rdCalculateAirhornsPerSecond(c.ID)
 
-        c,_ := s.UserChannelCreate(m.Author.ID)
-        s.ChannelMessageSend(c.ID, ":ok_hand: give me a private message m8")
-
-    } else if utilScontains(parts[1], "save_messages") && len(parts) >= 4 {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        go mkFetchAndSaveMessages(m.ChannelID, g, m.Author, parts[2], parts[3])
-
-    } else if utilScontains(parts[1], "generate_chain") && len(parts) >= 4 {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        go mkGenerateChain(m.ChannelID, g, m.Author, parts[2], parts[3])
-
-    } else if utilScontains(parts[1], "load_chain") && len(parts) >= 3 {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        go mkLoadChain(m.ChannelID, g, m.Author, parts[2])
-
-    } else if utilScontains(parts[1], "get_message") && len(parts) >= 2 {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-        go mkGetMessage(g, m.Author)
     } else if utilScontains(parts[1], "toggle_welcome") {
-        s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+        s.ChannelMessageSend(c.ID, ":ok_hand: give me a sec m8")
         WelcomeEnabled = !WelcomeEnabled
     }
 }
@@ -183,13 +164,30 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
         go sndEnqueuePlay(member.User, guild, MEMES, sound)
     }
 
-    if ((time.Now().UTC().Weekday().String() == "Tuesday") && (time.Now().UTC().Hour() > 23)) || (time.Now().UTC().Weekday().String() == "Wednesday") && (time.Now().UTC().Hour() < 5) {
+    startTime := time.Date(2016, time.August, 16, 23, 0, 0, 0, time.UTC)
+    endTime := time.Date(2016, time.August, 17, 5, 0, 0, 0, time.UTC)
+
+    if utilInTimeSpan(startTime, endTime, time.Now().UTC()) {
+        db := dbGetSession(guild.ID)
+        e := db.GetVoiceJoinEntry(member.User.ID)
+
+        if e != nil {
+            for _, t := range e.Dates {
+                p := time.Unix(t, 0).UTC()
+                // log.Info(p)
+                if utilInTimeSpan(startTime, endTime, p) {
+                    return
+                }
+            }
+        }
+
+        db.UpsertVoiceJoinEntry(member.User.ID)
+
         //give weekly bit bonus
         message:= giveWeeklyBitBonus(guild, member.User.ID)
         c,_ := s.UserChannelCreate(member.User.ID)
         s.ChannelMessageSend(c.ID, message)
     }
-
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {

@@ -22,6 +22,7 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
     - Based on Call stats (length of time on call, number of times joined call in month, ect.)
     - Based on Games?
 - CAH Spectator
+    - message bot the link and password to the game, then bot sends it to everyone when they join the call.
 - Pokemon Showdown Spectator
 - Pokemon Go Spectator
 - Gameplay Tracking (improve)

@@ -1,4 +1,4 @@
-package main
+package bits
 
 import (
     "bytes"
@@ -7,6 +7,9 @@ import (
     log "github.com/Sirupsen/logrus"
 
     "github.com/bwmarrin/discordgo"
+
+    "github.com/t11230/ramenbot/lib/utils"
+    "github.com/t11230/ramenbot/lib/rdb"
 )
 
 type BitStat struct {
@@ -53,10 +56,10 @@ func bitsPrintStats(guild *discordgo.Guild, message *discordgo.Message, args []s
     // fmt.Fprintf(w, "%s Game-Time Stats:\n", ) // Not sure how to get nicknames...
     fmt.Fprintf(w, "```\n")
     if me {
-        fmt.Fprintf(w, "%s: \t %d bits\n", utilGetPreferredName(guild, bits.UserID), bits.BitValue)
+        fmt.Fprintf(w, "%s: \t %d bits\n", utils.GetPreferredName(guild, bits.UserID), bits.BitValue)
     } else {
         for _, bit := range(bitslist) {
-            name := utilGetPreferredName(guild, bit.UserID)
+            name := utils.GetPreferredName(guild, bit.UserID)
             fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
         }
     }
@@ -80,7 +83,7 @@ func giveWeeklyBitBonus(guild *discordgo.Guild, userID string) string {
     buf := &bytes.Buffer{}
     log.Info("Giving Weekly Bonus")
     w.Init(buf, 0, 4, 0, ' ', 0)
-    fmt.Fprintf(w, "Welcome **%s**, you get 50 bits for joining this week!\n You now have **%d bits**\n", utilGetPreferredName(guild, userID), mybits.BitValue)
+    fmt.Fprintf(w, "Welcome **%s**, you get 50 bits for joining this week!\n You now have **%d bits**\n", utils.GetPreferredName(guild, userID), mybits.BitValue)
     w.Flush()
     return buf.String()
 }

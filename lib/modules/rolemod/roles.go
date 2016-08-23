@@ -1,9 +1,11 @@
-package main
+package rolemod
 
 import (
     log "github.com/Sirupsen/logrus"
 
     "github.com/bwmarrin/discordgo"
+
+    "github.com/t11230/ramenbot/lib/utils"
 )
 
 var (
@@ -137,7 +139,7 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, message *discordg
     var err error
     var color string
     user := message.Author
-    member := utilGetMember(guild, user.ID)
+    member := utils.GetMember(guild, user.ID)
     disco := false
     log.Info("Case: "+args[0])
     switch args[0] {
@@ -158,7 +160,7 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, message *discordg
          disco = true
     case "!!clear":
         for i, role := range(member.Roles){
-            if utilStringInSlice(role, colors) {
+            if utils.Scontains(role, colors...) {
                 member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
             }
         }
@@ -176,7 +178,7 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, message *discordg
     }
     log.Info(role.Color)
     for i, role := range(member.Roles){
-        if utilStringInSlice(role, colors) {
+        if utils.Scontains(role, colors...) {
             member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
         }
     }

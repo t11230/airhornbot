@@ -1,4 +1,4 @@
-package main
+package rolemod
 
 import (
     "github.com/bwmarrin/discordgo"

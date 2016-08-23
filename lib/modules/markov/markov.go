@@ -1,4 +1,4 @@
-package main
+package markov
 
 // This Markov chain code is taken from the "Generating arbitrary text"
 // codewalk: http://golang.org/doc/codewalk/markov/

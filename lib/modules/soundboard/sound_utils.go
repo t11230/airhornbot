@@ -1,7 +1,7 @@
-package main
+package soundboard
 
 import (
-    "bytes"
+    // "bytes"
     "encoding/binary"
     "fmt"
     "io"
@@ -10,6 +10,14 @@ import (
 
     log "github.com/Sirupsen/logrus"
     "github.com/bwmarrin/discordgo"
+
+    "github.com/t11230/ramenbot/lib/utils"
+)
+
+const (
+    // Sound encoding settings
+    BITRATE        = 128
+    MAX_QUEUE_SIZE = 6
 )
 
 var (
@@ -56,7 +64,7 @@ type Sound struct {
 
 
 // Create a Sound struct
-func sndCreateSound(Name string, Weight int, PartDelay int) *Sound {
+func CreateSound(Name string, Weight int, PartDelay int) *Sound {
     return &Sound{
         Name:      Name,
         Weight:    Weight,
@@ -75,7 +83,7 @@ func (sc *SoundCollection) Load() {
 func (s *SoundCollection) Random() *Sound {
     var (
         i      int
-        number int = utilRandomRange(0, s.soundRange)
+        number int = utils.RandomRange(0, s.soundRange)
     )
 
     for _, sound := range s.Sounds {
@@ -146,9 +154,9 @@ func (s *Sound) Play(vc *discordgo.VoiceConnection) {
 
 
 // Prepares a play
-func sndCreatePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) *Play {
+func CreatePlay(s *discordgo.Session, user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) *Play {
     // Grab the users voice channel
-    channel := utilGetCurrentVoiceChannel(user, guild)
+    channel := utils.GetCurrentVoiceChannel(s, user, guild)
     if channel == nil {
         log.WithFields(log.Fields{
             "user":  user.ID,
@@ -187,8 +195,8 @@ func sndCreatePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundColl
 }
 
 // Prepares and enqueues a play into the ratelimit/buffer guild queue
-func sndEnqueuePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) {
-    play := sndCreatePlay(user, guild, coll, sound)
+func sndEnqueuePlay(s *discordgo.Session, user *discordgo.User, guild *discordgo.Guild, coll *SoundCollection, sound *Sound) {
+    play := CreatePlay(s, user, guild, coll, sound)
     if play == nil {
         return
     }
@@ -203,18 +211,18 @@ func sndEnqueuePlay(user *discordgo.User, guild *discordgo.Guild, coll *SoundCol
         }
     } else {
         queues[guild.ID] = make(chan *Play, MAX_QUEUE_SIZE)
-        sndPlaySound(play, nil)
+        PlaySound(s, play, nil)
     }
 }
 
 // Play a sound
-func sndPlaySound(play *Play, vc *discordgo.VoiceConnection) (err error) {
+func PlaySound(s *discordgo.Session, play *Play, vc *discordgo.VoiceConnection) (err error) {
     log.WithFields(log.Fields{
         "play": play,
     }).Info("Playing sound")
 
     if vc == nil {
-        vc, err = discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
+        vc, err = s.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
         // vc.Receive = false
         if err != nil {
             log.WithFields(log.Fields{
@@ -231,8 +239,8 @@ func sndPlaySound(play *Play, vc *discordgo.VoiceConnection) (err error) {
         time.Sleep(time.Millisecond * 125)
     }
 
-    // Track stats for this play in redis
-    go rdTrackSoundStats(play)
+    // // Track stats for this play in redis
+    // go rdTrackSoundStats(play)
 
     // Sleep for a specified amount of time before playing the sound
     time.Sleep(time.Millisecond * 32)
@@ -242,13 +250,13 @@ func sndPlaySound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 
     // If this is chained, play the chained sound
     if play.Next != nil {
-        sndPlaySound(play.Next, vc)
+        PlaySound(s, play.Next, vc)
     }
 
     // If there is another song in the queue, recurse and play that
     if len(queues[play.GuildID]) > 0 {
         play := <-queues[play.GuildID]
-        sndPlaySound(play, vc)
+        PlaySound(s, play, vc)
         return nil
     }
 
@@ -259,19 +267,19 @@ func sndPlaySound(play *Play, vc *discordgo.VoiceConnection) (err error) {
     return nil
 }
 
-func sndGetSoundCommands() string {
-    buffer := bytes.NewBufferString("")
-    for _, coll := range COLLECTIONS {
-        buffer.WriteString("**")
-        buffer.WriteString(coll.Commands[0])
-        buffer.WriteString(":** ")
-        for idx, snd := range coll.Sounds {
-            buffer.WriteString(snd.Name)
-            if(idx != len(coll.Sounds)-1) {
-                buffer.WriteString(", ")
-            }
-        }
-        buffer.WriteString("\n")
-    }
-    return buffer.String();
-}
+// func GetSoundCommands() string {
+//     buffer := bytes.NewBufferString("")
+//     for _, coll := range COLLECTIONS {
+//         buffer.WriteString("**")
+//         buffer.WriteString(coll.Commands[0])
+//         buffer.WriteString(":** ")
+//         for idx, snd := range coll.Sounds {
+//             buffer.WriteString(snd.Name)
+//             if(idx != len(coll.Sounds)-1) {
+//                 buffer.WriteString(", ")
+//             }
+//         }
+//         buffer.WriteString("\n")
+//     }
+//     return buffer.String();
+// }

@@ -1,53 +1,98 @@
 package greeter
 
 import (
+	"errors"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/ramendb"
+	"github.com/t11230/ramenbot/lib/sound"
+	"github.com/t11230/ramenbot/lib/utils"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"strings"
 )
 
 // Module name used in the config file
 const ConfigName = "greeter"
 
 // List of commands that this module accepts
-var commandList = []modulebase.ModuleCommandListener{
-	{Command: "greet", Callback: greetCallback},
+var commandTree = []modulebase.ModuleCommandTree{
+	{
+		RootCommand: "greet",
+		SubKeys: modulebase.SK{
+			"pm": modulebase.CN{
+				Function:      handleGreetPm,
+				ErrorFunction: handleGreetPmError,
+			},
+			"voice": modulebase.CN{Function: handleGreetVoice},
+		},
+		Function: handleGreet,
+	},
 }
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
-	// Subscribe to VoiceStateUpdate events
 	events := []interface{}{
 		voiceStateUpdateCallback,
+		guildCreateCallback,
 	}
 
 	return &modulebase.ModuleSetupInfo{
 		Events:   &events,
-		Commands: &commandList,
+		Commands: &commandTree,
 	}, nil
 }
 
-// Called when the greet command is seen by the bot
-func greetCallback(s *discordgo.Session, cmd *modulebase.ModuleCommand) error {
-	log.Debugf("Greeter command: %v", cmd.Args)
-	switch cmd.Args[0] {
-	case "voice":
-		c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
-		if cmd.Args[1] == "enable" {
-			c.VoiceGreetEnable(cmd.Guild.ID, true)
-		} else {
-			c.VoiceGreetEnable(cmd.Guild.ID, false)
+func handleGreet(cmd *modulebase.ModuleCommand) error {
+	log.Debug("Called greet")
+	return nil
+}
+
+func handleGreetPm(cmd *modulebase.ModuleCommand) error {
+	if len(cmd.Args) == 0 {
+		return errors.New("Missing Args")
+	}
+
+	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
+	if cmd.Args[0] == "enable" {
+		c.PMGreetEnable(cmd.Guild.ID, true)
+	} else if cmd.Args[0] == "disable" {
+		c.PMGreetEnable(cmd.Guild.ID, false)
+	} else if cmd.Args[0] == "set" {
+		c.SetPMGreetMessage(cmd.Guild.ID, strings.Join(cmd.Args[1:], " "))
+	} else {
+		return errors.New("Invalid Args")
+	}
+	return nil
+}
+
+func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
+	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, fmt.Sprintf("Err: %v", e))
+}
+
+func handleGreetVoice(cmd *modulebase.ModuleCommand) error {
+	if len(cmd.Args) == 0 {
+		return errors.New("Missing Args")
+	}
+
+	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
+	if cmd.Args[0] == "enable" {
+		c.VoiceGreetEnable(cmd.Guild.ID, true)
+	} else if cmd.Args[0] == "disable" {
+		c.VoiceGreetEnable(cmd.Guild.ID, false)
+	} else if cmd.Args[0] == "set" {
+		if len(cmd.Args) != 3 {
+			return errors.New("Invalid Args")
 		}
-	case "pm":
-		c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
-		if cmd.Args[1] == "enable" {
-			c.PMGreetEnable(cmd.Guild.ID, true)
-		} else {
-			c.PMGreetEnable(cmd.Guild.ID, false)
+		if sound.FindSoundByName(cmd.Args[1], cmd.Args[2]) == nil {
+			log.Errorf("Invalid Sound effect: %v", cmd.Args[1:3])
+			return errors.New("Invalid sound effect")
 		}
+		c.SetVoiceGreetSound(cmd.Guild.ID, strings.Join(cmd.Args[1:3], " "))
+	} else {
+		return errors.New("Invalid Args")
 	}
 	return nil
 }
@@ -55,17 +100,52 @@ func greetCallback(s *discordgo.Session, cmd *modulebase.ModuleCommand) error {
 // Called in response to a VoiceStateUpdate event
 func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 	log.Debugf("Greeter On voice state update: %v", v.VoiceState)
+
 	// Check if it was a part
 	if v.ChannelID == "" {
 		return
 	}
 
+	guild, _ := s.State.Guild(v.GuildID)
+	if guild == nil {
+		log.WithFields(log.Fields{
+			"guild": v.GuildID,
+		}).Warning("Failed to grab guild")
+		return
+	}
+
+	member, _ := s.State.Member(v.GuildID, v.UserID)
+	if member == nil {
+		log.WithFields(log.Fields{
+			"member": member,
+		}).Warning("Failed to grab member")
+		return
+	}
+
+	if member.User.Bot {
+		return
+	}
+
 	c := greeterCollection{ramendb.GetCollection(v.GuildID, ConfigName)}
-	voiceGreet, _ := c.GreetEnabled(v.GuildID)
+	voiceGreet, pmGreet := c.GreetEnabled(v.GuildID)
+
+	// Handle PM greets
+	if pmGreet {
+		message := fmt.Sprintf(c.PMGreetMessage(v.GuildID),
+			utils.GetPreferredName(guild, v.UserID))
+
+		channel, _ := s.UserChannelCreate(v.UserID)
+		s.ChannelMessageSend(channel.ID, message)
+	}
+	// Handle Voice greets
 	if voiceGreet {
-		log.Info("Greet enabled")
-	} else {
-		log.Info("Greet disabled")
+		log.Debugf("Greeting :%v", member.User)
+		name := strings.Split(c.VoiceGreetSound(v.GuildID), " ")
+		if len(name) != 2 {
+			return
+		}
+		snd := sound.FindSoundByName(name[0], name[1])
+		go sound.EnqueuePlay(s, member.User, guild, nil, snd)
 	}
 }
 
@@ -80,9 +160,11 @@ func guildCreateCallback(s *discordgo.Session, g *discordgo.GuildCreate) {
 
 // Database functionality
 type greeterConfig struct {
-	GuildID    string
-	VoiceGreet *bool `bson:",omitempty"`
-	PMGreet    *bool `bson:",omitempty"`
+	GuildID         string
+	VoiceGreet      *bool  `bson:",omitempty"`
+	VoiceGreetSound string `bson:",omitempty"`
+	PMGreet         *bool  `bson:",omitempty"`
+	PMGreetMessage  string `bson:",omitempty"`
 }
 
 type greeterCollection struct {
@@ -99,9 +181,11 @@ func (c *greeterCollection) CreateConfig(guildId string) {
 
 	// Setup default values
 	defaultConfig := greeterConfig{
-		GuildID:    guildId,
-		VoiceGreet: &[]bool{false}[0],
-		PMGreet:    &[]bool{false}[0],
+		GuildID:         guildId,
+		VoiceGreet:      &[]bool{false}[0],
+		VoiceGreetSound: "meme welcomebdc",
+		PMGreet:         &[]bool{false}[0],
+		PMGreetMessage:  "Welcome to the server %s!",
 	}
 	c.Insert(defaultConfig)
 }
@@ -110,7 +194,15 @@ func (c *greeterCollection) GreetEnabled(guildId string) (bool, bool) {
 	config := greeterConfig{}
 	c.Find(greeterConfig{GuildID: guildId}).One(&config)
 
-	return *config.VoiceGreet, false
+	voiceGreet := false
+	pmGreet := false
+	if config.VoiceGreet != nil {
+		voiceGreet = *config.VoiceGreet
+	}
+	if config.PMGreet != nil {
+		pmGreet = *config.PMGreet
+	}
+	return voiceGreet, pmGreet
 }
 
 func (c *greeterCollection) VoiceGreetEnable(guildId string, enable bool) {
@@ -119,7 +211,7 @@ func (c *greeterCollection) VoiceGreetEnable(guildId string, enable bool) {
 		VoiceGreet: &enable,
 	}}
 
-	c.Upsert(greeterConfig{GuildID: guildId}, upsertdata)
+	c.Update(greeterConfig{GuildID: guildId}, upsertdata)
 }
 
 func (c *greeterCollection) PMGreetEnable(guildId string, enable bool) {
@@ -128,25 +220,37 @@ func (c *greeterCollection) PMGreetEnable(guildId string, enable bool) {
 		PMGreet: &enable,
 	}}
 
-	c.Upsert(greeterConfig{GuildID: guildId}, upsertdata)
+	c.Update(greeterConfig{GuildID: guildId}, upsertdata)
 }
 
-// import (
-//     "encoding/gob"
-//     "fmt"
-//     "math/rand"
-//     "os"
-//     "strings"
-//     "sync"
-// )
+func (c *greeterCollection) PMGreetMessage(guildId string) string {
+	config := greeterConfig{}
+	c.Find(greeterConfig{GuildID: guildId}).One(&config)
 
-// // Welcome them to the family
-// if WelcomeEnabled {
-//     var sound *Sound
-//     for _, s := range MEMES.Sounds {
-//         if "welcomebdc" == s.Name {
-//             sound = s
-//         }
-//     }
-//     go sndEnqueuePlay(member.User, guild, MEMES, sound)
-// }
+	return config.PMGreetMessage
+}
+
+func (c *greeterCollection) SetPMGreetMessage(guildId string, message string) {
+	data := bson.M{"$set": greeterConfig{
+		GuildID:        guildId,
+		PMGreetMessage: message,
+	}}
+
+	c.Update(greeterConfig{GuildID: guildId}, data)
+}
+
+func (c *greeterCollection) VoiceGreetSound(guildId string) string {
+	config := greeterConfig{}
+	c.Find(greeterConfig{GuildID: guildId}).One(&config)
+
+	return config.VoiceGreetSound
+}
+
+func (c *greeterCollection) SetVoiceGreetSound(guildId string, name string) {
+	data := bson.M{"$set": greeterConfig{
+		GuildID:         guildId,
+		VoiceGreetSound: name,
+	}}
+
+	c.Update(greeterConfig{GuildID: guildId}, data)
+}

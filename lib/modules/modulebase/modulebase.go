@@ -14,19 +14,30 @@ type ModuleSetupFunc func(*ModuleConfig) (*ModuleSetupInfo, error)
 
 type ModuleSetupInfo struct {
 	Events   *[]interface{}
-	Commands *[]ModuleCommandListener
-}
-
-type ModuleCommandCB func(*discordgo.Session, *ModuleCommand) error
-
-type ModuleCommandListener struct {
-	Command  string
-	Callback ModuleCommandCB
+	Commands *[]ModuleCommandTree
 }
 
 type ModuleCommand struct {
+	Session *discordgo.Session
 	Guild   *discordgo.Guild
 	Message *discordgo.Message
-	Command string
 	Args    []string
+}
+
+type ModuleCommandFunc func(*ModuleCommand) error
+type ModuleCommandErrorFunc func(*ModuleCommand, error)
+
+type ModuleCommandTree struct {
+	RootCommand   string
+	SubKeys       SK
+	Function      ModuleCommandFunc
+	ErrorFunction ModuleCommandErrorFunc
+}
+
+type SK map[string]CN
+type CN struct {
+	Parent        *CN
+	SubKeys       SK
+	Function      ModuleCommandFunc
+	ErrorFunction ModuleCommandErrorFunc
 }

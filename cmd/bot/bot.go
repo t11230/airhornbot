@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/sound"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -123,14 +123,15 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	parts := strings.Split(strings.ToLower(msg), " ")
 	baseCommand := strings.Replace(parts[0], PREFIX, "", 1)
 
-	cmd := modulebase.ModuleCommand{
+	cmd := modules.Command{
+		Session: s,
 		Guild:   guild,
 		Message: m.Message,
 		Command: baseCommand,
 		Args:    parts[1:],
 	}
 
-	modules.HandleCommand(s, &cmd)
+	modules.HandleCommand(&cmd)
 
 	// // Process text based commands
 	// for _, tcoll := range TEXTCMDS {
@@ -224,9 +225,7 @@ func main() {
 
 	// Preload all the sounds
 	log.Info("Preloading sounds...")
-	// for _, coll := range COLLECTIONS {
-	//     coll.Load()
-	// }
+	sound.LoadSounds()
 
 	// Open database
 	log.Info("Opening MongoDB")

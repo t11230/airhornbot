@@ -153,8 +153,11 @@ func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
 		return
 	}
 
-	startTime := time.Date(2016, time.August, 30, 23, 0, 0, 0, time.UTC)
-	endTime := time.Date(2016, time.August, 31, 5, 0, 0, 0, time.UTC)
+	year, month, day := time.Now().Date()
+	weekday := time.Now().Weekday()
+	next_tuesday := day + utilGetDaystoWeekday(int(weekday), 2)
+	startTime := time.Date(year, month, next_tuesday, 23, 0, 0, 0, time.UTC)
+	endTime := time.Date(year, month, next_tuesday+1, 5, 0, 0, 0, time.UTC)
 
 	if utilInTimeSpan(startTime, endTime, time.Now().UTC()) {
 		db := dbGetSession(guild.ID)

@@ -158,3 +158,10 @@ func utilGetMember(guild *discordgo.Guild, UserID string) *discordgo.Member {
 func utilInTimeSpan(start, end, check time.Time) bool {
     return check.After(start) && check.Before(end)
 }
+
+func utilGetDaystoWeekday(current_weekday int, weekday int) int {
+    if current_weekday <= weekday {
+        return weekday - current_weekday
+    }
+    return weekday + 7 - weekday; 
+}

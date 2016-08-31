@@ -137,6 +137,13 @@ func betRoll(guild *discordgo.Guild, message *discordgo.Message, args []string) 
             w.Flush()
             return buf.String()
         }
+
+        if maxnum <= 0 {
+            //user entered non-numerical number of die sides
+            fmt.Fprintf(w, "**ERROR:** Invalid dice submitted: Dice number less than or equal to zero.")
+            w.Flush()
+            return buf.String()
+        }
     }
     ante, err := strconv.Atoi(args[1])
     if err != nil {

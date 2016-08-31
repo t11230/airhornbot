@@ -274,7 +274,7 @@ func PlaySound(s *discordgo.Session, play *Play, vc *discordgo.VoiceConnection) 
 
 // func GetSoundCommands() string {
 //     buffer := bytes.NewBufferString("")
-//     for _, coll := range COLLECTIONS {
+//     for _, coll := range collections {
 //         buffer.WriteString("**")
 //         buffer.WriteString(coll.Commands[0])
 //         buffer.WriteString(":** ")
@@ -290,7 +290,7 @@ func PlaySound(s *discordgo.Session, play *Play, vc *discordgo.VoiceConnection) 
 // }
 
 func FindSoundByName(base string, name string) *Sound {
-	for _, c := range COLLECTIONS {
+	for _, c := range collections {
 		if utils.Scontains(base, c.Commands...) {
 			for _, s := range c.Sounds {
 				if name == s.Name {
@@ -303,7 +303,11 @@ func FindSoundByName(base string, name string) *Sound {
 }
 
 func LoadSounds() {
-	for _, coll := range COLLECTIONS {
+	for _, coll := range collections {
 		coll.Load()
 	}
+}
+
+func GetCollections() []*SoundCollection {
+	return collections
 }

@@ -338,7 +338,7 @@ var ARCHER *SoundCollection = &SoundCollection{
 	},
 }
 
-var COLLECTIONS []*SoundCollection = []*SoundCollection{
+var collections []*SoundCollection = []*SoundCollection{
 	AIRHORN,
 	KHALED,
 	CENA,

@@ -6,11 +6,13 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/modules/soundboard"
 )
 
 var (
 	moduleSetupFunctions = map[string]modulebase.ModuleSetupFunc{
-		greeter.ConfigName: greeter.SetupFunc,
+		greeter.ConfigName:    greeter.SetupFunc,
+		soundboard.ConfigName: soundboard.SetupFunc,
 	}
 
 	commandMap = map[string]modulebase.CN{}

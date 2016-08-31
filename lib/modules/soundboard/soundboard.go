@@ -2,6 +2,7 @@ package soundboard
 
 import (
 	"errors"
+	log "github.com/Sirupsen/logrus"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/sound"
 	"github.com/t11230/ramenbot/lib/utils"
@@ -28,6 +29,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleSoundCommand(cmd *modulebase.ModuleCommand) error {
+	log.Debugf("Sound :%v", cmd.Args)
 	if len(cmd.Args) == 0 {
 		availableCollections()
 		return nil

@@ -47,7 +47,9 @@ func LoadModules(configs []modulebase.ModuleConfig) error {
 			continue
 		}
 
-		eventList = append(eventList, *info.Events...)
+		if info.Events != nil {
+			eventList = append(eventList, *info.Events...)
+		}
 
 		for _, l := range *info.Commands {
 			commandMap[l.RootCommand] = linkModuleCommandTree(&l)
@@ -123,12 +125,12 @@ func HandleCommand(cmd *Command) {
 		}
 
 		nextNode, ok := node.SubKeys[args[0]]
-		args = cmd.Args[1:]
 
 		if !ok {
-			log.Debugf("Longest prefix found. %v args left", len(args))
+			log.Debugf("Longest prefix found. %v args left, %v", len(args), args)
 			break
 		}
+		args = cmd.Args[1:]
 		node = nextNode
 		log.Debugf("Entering node %v, args is: %v", node, args)
 	}

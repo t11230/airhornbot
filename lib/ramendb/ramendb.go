@@ -22,11 +22,6 @@ type BotDatabase struct {
 	Module  string
 }
 
-type VoiceJoinEntry struct {
-	UserID string
-	Dates  []int64
-}
-
 func MongoOpen(serverURL string) {
 	db, err := mgo.Dial(serverURL)
 	if err != nil {
@@ -48,45 +43,3 @@ func GetCollection(guildID string, moduleName string) *mgo.Collection {
 		guildID)).C(moduleName)
 
 }
-
-/* Weekly call tracking functions */
-// func (db *BotDatabase) GetVoiceJoinCollection() *mgo.Collection {
-
-// }
-
-// func (db *BotDatabase) GetVoiceJoinEntry(userID string) *VoiceJoinEntry {
-// 	c := db.GetVoiceJoinCollection()
-
-// 	search := bson.M{
-// 		"userid": userID,
-// 	}
-
-// 	var result VoiceJoinEntry
-// 	err := c.Find(search).One(&result)
-// 	if err != nil {
-// 		log.Error(err)
-// 		return nil
-// 	}
-// 	return &result
-// }
-
-// func (db *BotDatabase) UpsertVoiceJoinEntry(userID string) error {
-// 	c := db.GetVoiceJoinCollection()
-
-// 	search := bson.M{
-// 		"userid": userID,
-// 	}
-
-// 	update := bson.M{
-// 		"$push": bson.M{
-// 			"dates": time.Now().UTC().Unix(),
-// 		},
-// 	}
-
-// 	_, err := c.Upsert(search, update)
-// 	if err != nil {
-// 		log.Error(err)
-// 		return err
-// 	}
-// 	return nil
-// }

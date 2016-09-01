@@ -1,89 +1,95 @@
 package bits
 
 import (
-    "bytes"
-    "fmt"
-    "text/tabwriter"
-    log "github.com/Sirupsen/logrus"
-
-    "github.com/bwmarrin/discordgo"
-
-    "github.com/t11230/ramenbot/lib/utils"
-    "github.com/t11230/ramenbot/lib/rdb"
+	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/bwmarrin/discordgo"
+	"github.com/t11230/ramenbot/lib/ramendb"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
-type BitStat struct {
-    UserID string
-    BitValue int
+const (
+	stateCollection       = "bitstatus"
+	transactionCollection = "bittransactions"
+)
+
+type BitStatus struct {
+	UserID string `bson:",omitempty"`
+	Value  *int   `bson:",omitempty"`
 }
 
-func bitsPrintStats(guild *discordgo.Guild, message *discordgo.Message, args []string) string {
-    user := message.Author
-    db := dbGetSession(guild.ID)
-    var bits BitStat
-    var bitslist []BitStat
-
-    me:= false
-    // other:= false
-    if len(args)>1 {
-        if args[1]=="me" {
-            me = true
-        }
-        // else{
-        //     //functionality to look up user by nickname
-        // }
-    }
-
-    //this will give bit values
-    if(me) {
-        b := db.GetBitStats(user.ID)
-        if b == nil {
-            bits = BitStat{UserID: user.ID, BitValue: 0}
-            db.SetBitStats(user.ID, bits.BitValue)
-        } else {
-            bits = *b
-        }
-    } else {
-        bitslist = db.GetTopBitStats(10)
-    }
-
-
-
-    w := &tabwriter.Writer{}
-    buf := &bytes.Buffer{}
-
-    w.Init(buf, 0, 4, 0, ' ', 0)
-    // fmt.Fprintf(w, "%s Game-Time Stats:\n", ) // Not sure how to get nicknames...
-    fmt.Fprintf(w, "```\n")
-    if me {
-        fmt.Fprintf(w, "%s: \t %d bits\n", utils.GetPreferredName(guild, bits.UserID), bits.BitValue)
-    } else {
-        for _, bit := range(bitslist) {
-            name := utils.GetPreferredName(guild, bit.UserID)
-            fmt.Fprintf(w, "%s: \t %d bits\n", name, bit.BitValue)
-        }
-    }
-
-    fmt.Fprintf(w, "```\n")
-    w.Flush()
-    return buf.String()
+type BitTransaction struct {
+	UserID string
+	Amount int
+	Reason string
+	Time   int64
 }
 
-func giveWeeklyBitBonus(guild *discordgo.Guild, userID string) string {
-    db := dbGetSession(guild.ID)
-    mybits := db.GetBitStats(userID)
-    if mybits == nil {
-        db.SetBitStats(userID, 50)
-        mybits = db.GetBitStats(userID)
-    } else {
-        db.IncBitStats(userID, 50)
-        mybits = db.GetBitStats(userID)
-    }
-    w := &tabwriter.Writer{}
-    buf := &bytes.Buffer{}
-    log.Info("Giving Weekly Bonus")
-    w.Init(buf, 0, 4, 0, ' ', 0)
-    fmt.Fprintf(w, "Welcome **%s**, you get 50 bits for joining this week!\n You now have **%d bits**\n", utils.GetPreferredName(guild, userID), mybits.BitValue)
-    w.Flush()
-    return buf.String()
+type bitsCollection struct {
+	*mgo.Collection
+}
+
+func getCollections(guildId string) (bitsCollection, bitsCollection) {
+	return bitsCollection{ramendb.GetCollection(guildId, stateCollection)},
+		bitsCollection{ramendb.GetCollection(guildId, transactionCollection)}
+}
+
+func AddBits(session *discordgo.Session,
+	guildId string,
+	userId string,
+	amount int,
+	reason string,
+	quiet bool) {
+
+	s, t := getCollections(guildId)
+
+	// Update or create the current bit state
+	_, err := s.Upsert(BitStatus{
+		UserID: userId,
+	}, bson.M{"$inc": BitStatus{
+		Value: &[]int{amount}[0],
+	}})
+	if err != nil {
+		log.Errorf("Error updating BitStatus: %v", err)
+		return
+	}
+
+	err = t.Insert(BitTransaction{
+		UserID: userId,
+		Amount: amount,
+		Reason: reason,
+		Time:   time.Now().UTC().Unix(),
+	})
+	if err != nil {
+		log.Errorf("Error inserting BitTransaction: %v", err)
+		return
+	}
+
+	if quiet {
+		return
+	}
+
+	message := fmt.Sprintf("You received %v bits!", amount)
+
+	channel, _ := session.UserChannelCreate(userId)
+	session.ChannelMessageSend(channel.ID, message)
+}
+
+func RemoveBits(s *discordgo.Session, guildId string, userId string, amount int, reason string) {
+	AddBits(s, guildId, userId, amount, reason, true)
+}
+
+func GetBitsLeaderboard(guildId string, count int) []BitStatus {
+	s, _ := getCollections(guildId)
+
+	var result []BitStatus
+	err := s.Find(nil).Sort("-value").Limit(count).All(&result)
+	if err != nil {
+		log.Errorf("Error getting top BitStatuses: %v", err)
+		return nil
+	}
+
+	return result
 }

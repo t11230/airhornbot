@@ -7,12 +7,14 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
+	"github.com/t11230/ramenbot/lib/modules/voicebonus"
 )
 
 var (
 	moduleSetupFunctions = map[string]modulebase.ModuleSetupFunc{
 		greeter.ConfigName:    greeter.SetupFunc,
 		soundboard.ConfigName: soundboard.SetupFunc,
+		voicebonus.ConfigName: voicebonus.SetupFunc,
 	}
 
 	commandMap = map[string]modulebase.CN{}
@@ -130,7 +132,7 @@ func HandleCommand(cmd *Command) {
 			log.Debugf("Longest prefix found. %v args left, %v", len(args), args)
 			break
 		}
-		args = cmd.Args[1:]
+		args = args[1:]
 		node = nextNode
 		log.Debugf("Entering node %v, args is: %v", node, args)
 	}

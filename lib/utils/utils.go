@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -150,7 +151,33 @@ func InTimeSpan(start, end, check time.Time) bool {
 	return check.After(start) && check.Before(end)
 }
 
+func GetDaysTillWeekday(startDay int, weekday int) int {
+	return (weekday + 7 - startDay) % 7
+}
+
 func LogJSON(obj interface{}) {
 	b, _ := json.MarshalIndent(obj, "", "    ")
 	log.Infof("%v", string(b))
+}
+
+func EnableToBool(s string) (bool, error) {
+	if s == "enable" {
+		return true, nil
+	} else if s == "disable" {
+		return false, nil
+	}
+	return false, errors.New("Invalid argument")
+}
+
+func ToWeekday(s string) time.Weekday {
+	m := map[string]time.Weekday{
+		"sunday":    time.Sunday,
+		"monday":    time.Monday,
+		"tuesday":   time.Tuesday,
+		"wednesday": time.Wednesday,
+		"thursday":  time.Thursday,
+		"friday":    time.Friday,
+		"saturday":  time.Saturday,
+	}
+	return m[s]
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
+	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/ramendb"
 	"github.com/t11230/ramenbot/lib/utils"
@@ -171,21 +172,54 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 
 	log.Debugf("Timespan is: %v", span)
 
-	year, month, day := time.Now().UTC().Date()
-	weekday := time.Now().UTC().Weekday()
+	currentTime := time.Now().UTC()
+
+	year, month, day := currentTime.Date()
+	weekday := currentTime.Weekday()
 	nextDay := day + utils.GetDaysTillWeekday(int(weekday), span.Weekday)
 	startDate := time.Date(year, month, nextDay, span.Hour, span.Minute, 0, 0, time.UTC)
 
 	log.Debugf("Start Date is: %v", startDate)
-	if time.Now().UTC().After(startDate) &&
-		time.Since(startDate).Hours() < float64(span.Duration) {
+
+	lastJoinTime := time.Unix(getUserLastJoin(v.GuildID, v.UserID), 0)
+
+	if currentTime.After(startDate) &&
+		time.Since(startDate).Hours() < float64(span.Duration) &&
+		lastJoinTime.Before(startDate) {
+
+		bits.AddBits(s, v.GuildID, v.UserID, c.Amount(), "Voice join bonus", true)
 
 		username := utils.GetPreferredName(guild, v.UserID)
-		message := fmt.Sprintf(joinMessage, username, c.Amount(), 0)
+		message := fmt.Sprintf(joinMessage, username, c.Amount(),
+			bits.GetBits(v.GuildID, v.UserID))
 
 		channel, _ := s.UserChannelCreate(v.UserID)
 		s.ChannelMessageSend(channel.ID, message)
 	}
+
+	updateUserLastJoin(v.GuildID, v.UserID, currentTime.Unix())
+}
+
+type voicebonusLastJoin struct {
+	UserID   string `bson:",omitempty"`
+	LastJoin *int64 `bson:",omitempty"`
+}
+
+func updateUserLastJoin(guildId string, userId string, time int64) {
+	c := ramendb.GetCollection(guildId, ConfigName+"lastjoins")
+	c.Upsert(voicebonusLastJoin{UserID: userId},
+		bson.M{"$set": voicebonusLastJoin{LastJoin: &time}})
+}
+
+func getUserLastJoin(guildId string, userId string) int64 {
+	c := ramendb.GetCollection(guildId, ConfigName+"lastjoins")
+	result := &voicebonusLastJoin{}
+	c.Find(voicebonusLastJoin{UserID: userId}).One(result)
+	if result.LastJoin == nil {
+		return 0
+	}
+
+	return *result.LastJoin
 }
 
 type voicebonusCollection struct {

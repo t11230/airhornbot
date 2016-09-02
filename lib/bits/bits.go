@@ -93,3 +93,22 @@ func GetBitsLeaderboard(guildId string, count int) []BitStatus {
 
 	return result
 }
+
+func GetBits(guildId string, userId string) int {
+	s, _ := getCollections(guildId)
+
+	result := &BitStatus{}
+	err := s.Find(BitStatus{
+		UserID: userId,
+	}).One(&result)
+	if err != nil {
+		log.Errorf("Error getting BitStatus: %v", err)
+		return 0
+	}
+
+	if result.Value == nil {
+		return 0
+	}
+
+	return *result.Value
+}

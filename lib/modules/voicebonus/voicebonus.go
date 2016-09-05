@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/ramendb"
 	"github.com/t11230/ramenbot/lib/utils"
 	"gopkg.in/mgo.v2"
@@ -50,11 +51,24 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   &events,
 		Commands: &commandTree,
+		DBStart:  handleDbStart,
 	}, nil
+}
+
+func handleDbStart() error {
+	perms.CreatePerm("voicebonus-control")
+	return nil
 }
 
 func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
+
+	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
+	if !hasPerm {
+		return "Insufficient permissions", nil
+	}
+
 	if len(cmd.Args) == 0 {
 		return "Missing arguments", nil
 	}
@@ -82,6 +96,13 @@ func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetAmount")
+
+	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
+	if !hasPerm {
+		return "Insufficient permissions", nil
+	}
+
 	if len(cmd.Args) == 0 {
 		return "Missing amount", nil
 	}
@@ -103,6 +124,13 @@ func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetTime")
+
+	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
+	if !hasPerm {
+		return "Insufficient permissions", nil
+	}
+
 	if len(cmd.Args) != 3 {
 		return "Missing or invalid args", nil
 	}

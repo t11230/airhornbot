@@ -5,6 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/ramendb"
 	"github.com/t11230/ramenbot/lib/sound"
 	"github.com/t11230/ramenbot/lib/utils"
@@ -41,7 +42,13 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   &events,
 		Commands: &commandTree,
+		DBStart:  handleDbStart,
 	}, nil
+}
+
+func handleDbStart() error {
+	perms.CreatePerm("greet-control")
+	return nil
 }
 
 func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
@@ -50,6 +57,12 @@ func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
+	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "greet-control")
+	if !hasPerm {
+		return "Insufficient permissions", nil
+	}
+
 	if len(cmd.Args) == 0 {
 		return "Missing arguments", nil
 	}
@@ -72,6 +85,12 @@ func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
 }
 
 func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
+	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "greet-control")
+	if !hasPerm {
+		return "Insufficient permissions", nil
+	}
+
 	if len(cmd.Args) == 0 {
 		return "Missing arguments", nil
 	}

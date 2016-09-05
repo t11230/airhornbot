@@ -12,7 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 
-	// "github.com/t11230/ramenbot/lib/utils"
 	"github.com/t11230/ramenbot/lib/config"
 	"github.com/t11230/ramenbot/lib/modules"
 	"github.com/t11230/ramenbot/lib/ramendb"
@@ -230,6 +229,13 @@ func main() {
 	// Open database
 	log.Info("Opening MongoDB")
 	ramendb.MongoOpen(conf.MongoDB)
+
+	log.Info("Processing Module DB Hooks")
+	err = modules.DBHooks()
+	if err != nil {
+		log.Errorf("Error loading modules: ", err)
+		return
+	}
 
 	// Create a discord session
 	log.Info("Starting discord session...")

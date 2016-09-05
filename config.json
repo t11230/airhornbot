@@ -2,7 +2,7 @@
     "Token": "MTg0ODI1NDc0MDgwNDQwMzIw.CiadCg.4jQz1wJrbgLzP0vGr4KeqF8ZvSQ",
     "MongoDB": "localhost",
     "Modules": [
-        { "name": "gambling", "enable": false, "options": {} },
+        { "name": "gambling", "enable": true, "options": {} },
         { "name": "gametrack", "enable": false },
         { "name": "greeter", "enable": true },
         { "name": "help", "enable": false },

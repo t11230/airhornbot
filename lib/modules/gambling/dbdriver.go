@@ -1,100 +1,116 @@
 package gambling
 
 import (
-    "github.com/t11230/ramenbot/lib/ramendb"
+	"errors"
+	log "github.com/Sirupsen/logrus"
+	"github.com/t11230/ramenbot/lib/ramendb"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
-/* Betting functions */
-func (db *BotDatabase) GetBetRollCollection(guildID string) *mgo.Collection {
-    return db.Session.DB(fmt.Sprintf("%s-%s",
-                         MongoBaseDBName,
-                         guildID)).C(MongoBetRollCollection)
+const (
+	betRollDBSuffix = "betroll"
+)
+
+type gamblingCollection struct {
+	*mgo.Collection
 }
 
-func (db *BotDatabase) GetActiveBetRoll(guildID string) *BetRoll {
-    c := db.GetBetRollCollection(guildID)
-
-    result := &BetRoll{}
-    err := c.Find(nil).One(&result)
-    if err != nil {
-        return nil
-    }
-    return result
+type Player struct {
+	UserID string
+	Bid    int
 }
 
-func (db *BotDatabase) GetPlayers(guildID string) []Player {
-    b := db.GetActiveBetRoll(guildID)
-    if b == nil {
-        log.Error(errors.New("No active BetRoll"))
-        return nil
-    }
-
-    return b.Players
+type BetRoll struct {
+	Players []Player
+	Ante    int
 }
 
-func (db *BotDatabase) SetBetRollAnte(guildID string, ante int) error {
-    b := db.GetActiveBetRoll(guildID)
-    if b == nil {
-        return errors.New("No active BetRoll")
-    }
-
-    b.Ante = ante
-
-    c := db.GetBetRollCollection(guildID)
-
-    update := bson.M{
-        "$set": b,
-    }
-
-    err := c.Update(bson.M{}, update)
-    if err != nil {
-        return err
-    }
-
-    return nil
+func getBetRollCollection(guildId string) *gamblingCollection {
+	return &gamblingCollection{ramendb.GetCollection(guildId, ConfigName+betRollDBSuffix)}
 }
 
-func (db *BotDatabase) BetRollAddPlayer(guildID string, player Player) error {
-    b := db.GetActiveBetRoll(guildID)
-    if b == nil {
-        log.Error(errors.New("No active BetRoll"))
-        return nil
-    }
-
-    b.Players = append(b.Players, player)
-
-    c := db.GetBetRollCollection(guildID)
-
-    update := bson.M{
-        "$set": b,
-    }
-
-    err := c.Update(bson.M{}, update)
-    if err != nil {
-        return err
-    }
-
-
-    return nil
+func getActiveBetRoll(guildId string) *BetRoll {
+	c := getBetRollCollection(guildId)
+	result := &BetRoll{}
+	err := c.Find(nil).One(&result)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
-func (db *BotDatabase) BetRollOpen(guildID string) error {
-    b := db.GetActiveBetRoll(guildID)
-    if b != nil {
-        return errors.New("An active BetRoll already exists")
-    }
+func betRollAddPlayer(guildId string, player *Player) error {
+	b := getActiveBetRoll(guildId)
+	if b == nil {
+		log.Error(errors.New("No active BetRoll"))
+		return nil
+	}
 
-    c := db.GetBetRollCollection(guildID)
-    return c.Insert(BetRoll{})
+	b.Players = append(b.Players, *player)
+
+	c := getBetRollCollection(guildId)
+
+	update := bson.M{
+		"$set": b,
+	}
+
+	err := c.Update(bson.M{}, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (db *BotDatabase) BetRollClose(guildID string) error {
-    b := db.GetActiveBetRoll(guildID)
-    if b == nil {
-        return errors.New("No active BetRoll")
-    }
+func betRollOpen(guildId string) error {
+	b := getActiveBetRoll(guildId)
+	if b != nil {
+		return errors.New("An active BetRoll already exists")
+	}
 
-    c := db.GetBetRollCollection(guildID)
-    return c.Remove(bson.M{})
+	c := getBetRollCollection(guildId)
+	return c.Insert(BetRoll{})
 }
 
+func setBetRollAnte(guildId string, ante int) error {
+	b := getActiveBetRoll(guildId)
+	if b == nil {
+		return errors.New("No active BetRoll")
+	}
+
+	b.Ante = ante
+
+	c := getBetRollCollection(guildId)
+
+	update := bson.M{
+		"$set": b,
+	}
+
+	err := c.Update(bson.M{}, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func betRollClose(guildId string) error {
+	b := getActiveBetRoll(guildId)
+	if b == nil {
+		return errors.New("No active BetRoll")
+	}
+
+	c := getBetRollCollection(guildId)
+	return c.Remove(bson.M{})
+}
+
+func getBetRollPlayers(guildId string) []Player {
+	b := getActiveBetRoll(guildId)
+	if b == nil {
+		log.Error(errors.New("No active BetRoll"))
+		return nil
+	}
+
+	return b.Players
+}

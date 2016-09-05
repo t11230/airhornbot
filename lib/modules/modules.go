@@ -4,6 +4,7 @@ import (
 	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
+	"github.com/t11230/ramenbot/lib/modules/gambling"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
@@ -15,6 +16,7 @@ var (
 		greeter.ConfigName:    greeter.SetupFunc,
 		soundboard.ConfigName: soundboard.SetupFunc,
 		voicebonus.ConfigName: voicebonus.SetupFunc,
+		gambling.ConfigName:   gambling.SetupFunc,
 	}
 
 	commandMap = map[string]modulebase.CN{}

@@ -181,3 +181,14 @@ func ToWeekday(s string) time.Weekday {
 	}
 	return m[s]
 }
+
+func FindUser(guild *discordgo.Guild, name string) (*discordgo.User, error) {
+	for _, member := range guild.Members {
+		if name == strings.ToLower(member.Nick) ||
+			name == strings.ToLower(member.User.Username) {
+			return member.User, nil
+		}
+	}
+
+	return nil, errors.New("User not found")
+}

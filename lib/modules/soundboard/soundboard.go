@@ -28,11 +28,11 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	}, nil
 }
 
-func handleSoundCommand(cmd *modulebase.ModuleCommand) error {
+func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debugf("Sound :%v", cmd.Args)
 	if len(cmd.Args) == 0 {
 		availableCollections()
-		return nil
+		return "", nil
 	}
 
 	for _, coll := range sound.GetCollections() {
@@ -48,16 +48,16 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) error {
 				}
 
 				if snd == nil {
-					return errors.New("Sound was nil")
+					return "", errors.New("Sound was nil")
 				}
 			}
 
 			go sound.EnqueuePlay(cmd.Session, cmd.Message.Author, cmd.Guild, coll, snd)
-			return nil
+			return "", nil
 		}
 	}
 
-	return nil
+	return "Unable to find sound", nil
 }
 
 func availableCollections() []string {

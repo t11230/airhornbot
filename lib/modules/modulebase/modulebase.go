@@ -24,7 +24,7 @@ type ModuleCommand struct {
 	Args    []string
 }
 
-type ModuleCommandFunc func(*ModuleCommand) error
+type ModuleCommandFunc func(*ModuleCommand) (string, error)
 type ModuleCommandErrorFunc func(*ModuleCommand, error)
 
 type ModuleCommandTree struct {

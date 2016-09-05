@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/utils"
 	"math/rand"
@@ -31,6 +30,9 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"bits": modulebase.CN{
 				Function: showBits,
 			},
+			"give": modulebase.CN{
+				Function: giveBits,
+			},
 		},
 		Function: handleRootCommand,
 	},
@@ -44,49 +46,11 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	}, nil
 }
 
-func handleRootCommand(cmd *modulebase.ModuleCommand) error {
-	log.Error("Error parsing d string")
-	return nil
+func handleRootCommand(cmd *modulebase.ModuleCommand) (string, error) {
+	return "", nil
 }
 
-func showBits(cmd *modulebase.ModuleCommand) error {
-	w := &tabwriter.Writer{}
-	buf := &bytes.Buffer{}
-	w.Init(buf, 0, 3, 0, ' ', 0)
-	fmt.Fprint(w, "```\n")
-
-	if len(cmd.Args) == 0 {
-		for _, b := range bits.GetBitsLeaderboard(cmd.Guild.ID, 10) {
-			name := utils.GetPreferredName(cmd.Guild, b.UserID)
-			if b.Value != nil && *b.Value != 0 {
-				fmt.Fprintf(w, "%s: \t %d bits\n", name, *b.Value)
-			}
-		}
-		fmt.Fprint(w, "```\n")
-		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
-	}
-
-	var userId string
-	if cmd.Args[0] == "me" {
-		userId = cmd.Message.Author.ID
-	} else {
-		// TODO
-	}
-
-	b := bits.GetBits(cmd.Guild.ID, userId)
-
-	name := utils.GetPreferredName(cmd.Guild, userId)
-	fmt.Fprintf(w, "%s: \t %d bits\n", name, b)
-
-	fmt.Fprint(w, "```\n")
-	w.Flush()
-	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-	return nil
-}
-
-func rollDice(cmd *modulebase.ModuleCommand) error {
+func rollDice(cmd *modulebase.ModuleCommand) (string, error) {
 	roll_help := `**roll usage:** roll *dietype (optional)*
     This command initiates a dice roll.
     The second optional argument specifies a type of die for the roll.
@@ -109,13 +73,12 @@ func rollDice(cmd *modulebase.ModuleCommand) error {
 	log.Debugf("Args was: %v", cmd.Args)
 	if len(cmd.Args) > 0 {
 		if (len(cmd.Args) > 1) || (cmd.Args[0] == "help") {
-			cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, roll_help)
-			return nil
+			return roll_help, nil
 		}
 		if strings.HasPrefix(cmd.Args[0], "d") {
 			maxnum, err = strconv.Atoi(strings.Replace(cmd.Args[0], "d", "", 1))
 			if err != nil {
-				return err
+				return "Invalid dietype", nil
 			}
 			if isValidDie(maxnum) {
 				draw = true
@@ -123,7 +86,7 @@ func rollDice(cmd *modulebase.ModuleCommand) error {
 		} else {
 			maxnum, err = strconv.Atoi(cmd.Args[0])
 			if err != nil {
-				return err
+				return "Invalid number for dietype", nil
 			}
 		}
 		r = rand.Intn(maxnum) + 1
@@ -152,8 +115,7 @@ func rollDice(cmd *modulebase.ModuleCommand) error {
 	fmt.Fprintf(w, result)
 	fmt.Fprintf(w, "```\n")
 	w.Flush()
-	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-	return nil
+	return buf.String(), nil
 }
 
 func isValidDie(num int) bool {

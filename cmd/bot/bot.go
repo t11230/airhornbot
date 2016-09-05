@@ -51,29 +51,6 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 	}
 }
 
-func onVoiceStateUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
-	guild, _ := discord.State.Guild(m.GuildID)
-	if guild == nil {
-		log.WithFields(log.Fields{
-			"guild":   m.GuildID,
-			"channel": m,
-		}).Warning("Failed to grab guild")
-		return
-	}
-
-	member, _ := discord.State.Member(m.GuildID, m.UserID)
-	if member == nil {
-		log.WithFields(log.Fields{
-			"member": member,
-		}).Warning("Failed to grab member")
-		return
-	}
-
-	if member.User.Bot {
-		return
-	}
-}
-
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if len(m.Content) <= 0 {
 		return
@@ -98,20 +75,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// // If we have a message not starting with "!", then handle markov stuff
-	// if (!strings.HasPrefix(m.Content, "!") && len(m.Mentions) < 1) {
-	//     mkWriteMessage(guild, m.Content)
-	//     rando := rand.Intn(100)
-	//     if rando < 10 {
-	//         log.Printf("Sending markov message")
-	//         go func() {
-	//             s.ChannelMessageSend(m.ChannelID,
-	//                                     mkGetMessage(guild, m.Author))
-	//         }()
-	//     }
-	//     return
-	// }
-
 	// Filter out normal messages
 	if !strings.HasPrefix(m.Content, PREFIX) {
 		log.Debug("Filtering non-command")
@@ -131,45 +94,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	modules.HandleCommand(&cmd)
-
-	// // Process text based commands
-	// for _, tcoll := range TEXTCMDS {
-	//     if utils.Scontains(baseCommand, tcoll.Commands...) {
-	//         s.ChannelMessageSend(m.ChannelID,
-	//                                 tcoll.Function(guild, m.Message, parts))
-	//     }
-	// }
-
-	// // Process role based commands
-	// for _, rcoll := range ROLECMDS {
-	//     if utils.Scontains(baseCommand, rcoll.Commands...) {
-	//         s.ChannelMessageSend(m.ChannelID,
-	//                                 rcoll.Function(s, guild, m.Message, parts))
-	//     }
-	// }
-
-	// // Process sound commands
-	// for _, coll := range COLLECTIONS {
-	//     if utils.Scontains(baseCommand, coll.Commands...) {
-
-	//         // If they passed a specific sound effect, find and select that (otherwise play nothing)
-	//         var sound *Sound
-	//         if len(parts) > 1 {
-	//             for _, s := range coll.Sounds {
-	//                 if parts[1] == s.Name {
-	//                     sound = s
-	//                 }
-	//             }
-
-	//             if sound == nil {
-	//                 return
-	//             }
-	//         }
-
-	//         go sndEnqueuePlay(m.Author, guild, coll, sound)
-	//         return
-	//     }
-	// }
 }
 
 // Handle updating of presences in the current session, because the API doesnt...
@@ -193,8 +117,6 @@ func onPresenceUpdate(s *discordgo.Session, u *discordgo.PresenceUpdate) {
 			return
 		}
 	}
-
-	return
 }
 
 func main() {
@@ -230,10 +152,10 @@ func main() {
 	log.Info("Opening MongoDB")
 	ramendb.MongoOpen(conf.MongoDB)
 
-	log.Info("Processing Module DB Hooks")
+	log.Info("Processing Module DB start functions")
 	err = modules.DBHooks()
 	if err != nil {
-		log.Errorf("Error loading modules: ", err)
+		log.Errorf("Error on modules DB start: ", err)
 		return
 	}
 
@@ -251,7 +173,6 @@ func main() {
 	discord.AddHandler(onGuildCreate)
 	discord.AddHandler(onMessageCreate)
 	// discord.AddHandler(onPresenceUpdate)
-	discord.AddHandler(onVoiceStateUpdate)
 
 	err = discord.Open()
 	if err != nil {
@@ -262,11 +183,7 @@ func main() {
 	}
 
 	// We're running!
-	log.Info("RamenBot is ready to horn it up.")
-
-	// log.Info("Setting up Game watch tick")
-	// ticker := time.NewTicker(time.Second * 60)
-	// go processGameplayLoop(ticker)
+	log.Info("RamenBot is running.")
 
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)

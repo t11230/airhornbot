@@ -4,6 +4,7 @@ import (
 	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
+	"github.com/t11230/ramenbot/lib/modules/admin"
 	"github.com/t11230/ramenbot/lib/modules/gambling"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
@@ -17,11 +18,14 @@ var (
 		soundboard.ConfigName: soundboard.SetupFunc,
 		voicebonus.ConfigName: voicebonus.SetupFunc,
 		gambling.ConfigName:   gambling.SetupFunc,
+		admin.ConfigName:      admin.SetupFunc,
 	}
 
 	commandMap = map[string]modulebase.CN{}
 
 	eventList = *new([]interface{})
+
+	dbStartFunctions = []modulebase.ModuleDBStartFunc{}
 )
 
 type Command struct {
@@ -57,6 +61,10 @@ func LoadModules(configs []modulebase.ModuleConfig) error {
 
 		for _, l := range *info.Commands {
 			commandMap[l.RootCommand] = linkModuleCommandTree(&l)
+		}
+
+		if info.DBStart != nil {
+			dbStartFunctions = append(dbStartFunctions, info.DBStart)
 		}
 
 		log.Debugf("Command trees: %v", commandMap)
@@ -167,17 +175,12 @@ func InitEvents(s *discordgo.Session) {
 	log.Debug("Event handlers added")
 }
 
-// Callbacks to add:
-//
-// Ready
-// MessageCreate
-// PresenceUpdate
-// VoiceStateUpdate
-// GuildCreate
-// GuildMemberAdd
-// GuildMemberRemove
-// GuildRoleCreate
-// GuildRoleUpdate
-// GuildRoleDelete
-// GuildUpdate
-// GuildDelete
+func DBHooks() error {
+	for _, f := range dbStartFunctions {
+		err := f()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

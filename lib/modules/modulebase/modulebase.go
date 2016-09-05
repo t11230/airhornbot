@@ -11,10 +11,12 @@ type ModuleConfig struct {
 }
 
 type ModuleSetupFunc func(*ModuleConfig) (*ModuleSetupInfo, error)
+type ModuleDBStartFunc func() error
 
 type ModuleSetupInfo struct {
 	Events   *[]interface{}
 	Commands *[]ModuleCommandTree
+	DBStart  ModuleDBStartFunc
 }
 
 type ModuleCommand struct {

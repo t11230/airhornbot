@@ -1,4 +1,5 @@
 bot/bot
+bot
 *.pyc
 app/settings.py
 *.db
@@ -7,3 +8,5 @@ web
 requests.log
 dist
 node_modules
+discord-bot
+config.json

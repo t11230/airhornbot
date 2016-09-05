@@ -1,7 +1,6 @@
 package greeter
 
 import (
-	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -45,14 +44,14 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	}, nil
 }
 
-func handleGreet(cmd *modulebase.ModuleCommand) error {
+func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called greet")
-	return nil
+	return "Greet help", nil
 }
 
-func handleGreetPm(cmd *modulebase.ModuleCommand) error {
+func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
 	if len(cmd.Args) == 0 {
-		return errors.New("Missing Args")
+		return "Missing arguments", nil
 	}
 
 	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -63,18 +62,18 @@ func handleGreetPm(cmd *modulebase.ModuleCommand) error {
 	} else if cmd.Args[0] == "set" {
 		c.SetPMGreetMessage(cmd.Guild.ID, strings.Join(cmd.Args[1:], " "))
 	} else {
-		return errors.New("Invalid Args")
+		return "Invalid Args", nil
 	}
-	return nil
+	return "", nil
 }
 
 func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
 	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, fmt.Sprintf("Err: %v", e))
 }
 
-func handleGreetVoice(cmd *modulebase.ModuleCommand) error {
+func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
 	if len(cmd.Args) == 0 {
-		return errors.New("Missing Args")
+		return "Missing arguments", nil
 	}
 
 	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -84,17 +83,17 @@ func handleGreetVoice(cmd *modulebase.ModuleCommand) error {
 		c.VoiceGreetEnable(cmd.Guild.ID, false)
 	} else if cmd.Args[0] == "set" {
 		if len(cmd.Args) != 3 {
-			return errors.New("Invalid Args")
+			return "Invalid Args", nil
 		}
 		if sound.FindSoundByName(cmd.Args[1], cmd.Args[2]) == nil {
-			log.Errorf("Invalid Sound effect: %v", cmd.Args[1:3])
-			return errors.New("Invalid sound effect")
+			errString := fmt.Sprintf("Invalid Sound effect: %v", cmd.Args[1:3])
+			return errString, nil
 		}
 		c.SetVoiceGreetSound(cmd.Guild.ID, strings.Join(cmd.Args[1:3], " "))
 	} else {
-		return errors.New("Invalid Args")
+		return "Invalid Args", nil
 	}
-	return nil
+	return "", nil
 }
 
 // Called in response to a VoiceStateUpdate event

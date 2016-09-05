@@ -140,16 +140,18 @@ func HandleCommand(cmd *Command) {
 	}
 
 	var err error
+	var message string
 
 	if node.Function != nil {
 		moduleCmd.Args = args
-		err = node.Function(moduleCmd)
+		message, err = node.Function(moduleCmd)
 	} else {
 		log.Error("Function was nil")
 		err = errors.New("Nil Function")
 	}
 
 	if err == nil {
+		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, message)
 		return
 	}
 

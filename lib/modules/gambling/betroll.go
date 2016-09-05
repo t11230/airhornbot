@@ -19,7 +19,7 @@ const (
 	MinAnte   = 5
 )
 
-func betRoll(cmd *modulebase.ModuleCommand) error {
+func betRoll(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Placing Betroll")
 
 	w := &tabwriter.Writer{}
@@ -42,15 +42,13 @@ func betRoll(cmd *modulebase.ModuleCommand) error {
 	if event != nil {
 		fmt.Fprintf(w, "**ERROR:** BetRoll Event already in progress.")
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 
 	if (len(cmd.Args) < 1) || (len(cmd.Args) > 2) {
 		fmt.Fprintf(w, betroll_help)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 
 	//6-sided die is default
@@ -63,8 +61,7 @@ func betRoll(cmd *modulebase.ModuleCommand) error {
 			//user entered non-numerical number of die sides
 			fmt.Fprintf(w, "**ERROR:** Non-numerical dice submitted.  Please don't be a smartass.")
 			w.Flush()
-			cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-			return nil
+			return buf.String(), nil
 		}
 	}
 	ante, err := strconv.Atoi(cmd.Args[0])
@@ -72,17 +69,15 @@ func betRoll(cmd *modulebase.ModuleCommand) error {
 		//user entered non-numerical ante
 		fmt.Fprintf(w, "**ERROR:** Non-numerical ante submitted.  Please don't be a smartass.")
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 
 	go doBetRollRound(cmd, maxnum, ante, RoundTime)
 
-	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, "Betting Round Started!")
-	return nil
+	return buf.String(), nil
 }
 
-func bid(cmd *modulebase.ModuleCommand) error {
+func bid(cmd *modulebase.ModuleCommand) (string, error) {
 	user := cmd.Message.Author
 	event := getActiveBetRoll(cmd.Guild.ID)
 	w := &tabwriter.Writer{}
@@ -102,21 +97,18 @@ func bid(cmd *modulebase.ModuleCommand) error {
 	if event == nil {
 		fmt.Fprintf(w, event_error_msg)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 	if len(cmd.Args) != 1 {
 		fmt.Fprintf(w, bid_help)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 	for _, b := range event.Players {
 		if b.UserID == user.ID {
 			fmt.Fprintf(w, "You can only bid once!")
 			w.Flush()
-			cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-			return nil
+			return buf.String(), nil
 		}
 	}
 	var me Player
@@ -125,27 +117,23 @@ func bid(cmd *modulebase.ModuleCommand) error {
 	if err != nil {
 		fmt.Fprintf(w, bid_error_msg)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 	if bits.GetBits(cmd.Guild.ID, user.ID) < event.Ante {
 		fmt.Fprintf(w, ante_error_msg)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 	bits.RemoveBits(cmd.Session, cmd.Guild.ID, user.ID, event.Ante, "BetRoll bid")
 	err = betRollAddPlayer(cmd.Guild.ID, &me)
 	if err != nil {
 		fmt.Fprintf(w, db_error_msg)
 		w.Flush()
-		cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-		return nil
+		return buf.String(), nil
 	}
 	fmt.Fprintf(w, success_msg)
 	w.Flush()
-	cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, buf.String())
-	return nil
+	return buf.String(), nil
 }
 
 func printBetRollTime(time int, ante int) string {

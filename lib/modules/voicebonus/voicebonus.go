@@ -1,7 +1,6 @@
 package voicebonus
 
 import (
-	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -54,70 +53,77 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	}, nil
 }
 
-func handleSet(cmd *modulebase.ModuleCommand) error {
+func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
 	if len(cmd.Args) == 0 {
-		err := errors.New("Missing Args")
-		log.Error(err)
-		return err
+		return "Missing arguments", nil
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
 	enable, err := utils.EnableToBool(cmd.Args[0])
 	if err != nil {
-		return err
+		return "Invalid argument", nil
 	}
 
-	return c.Enable(enable)
+	err = c.Enable(enable)
+	if err != nil {
+		errString := fmt.Sprintf("Error updating enable state: %v", err)
+		return errString, nil
+	}
+
+	var enabledString string
+	if enable {
+		enabledString = "Enabled"
+	} else {
+		enabledString = "Disabled"
+	}
+	return fmt.Sprintf("Voice Bonus %v", enabledString), nil
 }
 
-func handleSetAmount(cmd *modulebase.ModuleCommand) error {
+func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetAmount")
 	if len(cmd.Args) == 0 {
-		err := errors.New("Missing Args")
-		log.Error(err)
-		return err
+		return "Missing amount", nil
 	}
 
 	amount, err := strconv.Atoi(cmd.Args[0])
 	if err != nil {
-		log.Error(err)
-		return err
+		return "Invalid amount", nil
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
-	return c.SetAmount(amount)
+	err = c.SetAmount(amount)
+	if err != nil {
+		errString := fmt.Sprintf("Error updating amount: %v", err)
+		return errString, nil
+	}
+
+	return fmt.Sprintf("Voice Bonus amount set to %v", amount), nil
 }
 
-func handleSetTime(cmd *modulebase.ModuleCommand) error {
+func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetTime")
 	if len(cmd.Args) != 3 {
-		err := errors.New("Missing or invalid args")
-		log.Error(err)
-		return err
+		return "Missing or invalid args", nil
 	}
 
 	weekday := utils.ToWeekday(cmd.Args[0])
 	time := strings.Split(cmd.Args[1], ":")
 	hour, err := strconv.Atoi(time[0])
 	if err != nil {
-		err := errors.New("Invalid hour")
-		return err
+		return "Invalid hour", nil
 	}
 	minute, err := strconv.Atoi(time[1])
 	if err != nil {
-		err := errors.New("Invalid minute")
-		return err
+		return "Invalid minute", nil
 	}
 
 	if !strings.Contains(cmd.Args[2], "h") {
-		err := errors.New("Invalid duration")
-		return err
+		return "Missing 'h' in duration", nil
 	}
 	duration, err := strconv.Atoi(strings.Replace(cmd.Args[2], "h", "", 1))
 	if err != nil {
-		err := errors.New("Invalid duration")
-		return err
+		return "Invalid duration", nil
 	}
 
 	span := voicebonusTimespan{
@@ -128,7 +134,13 @@ func handleSetTime(cmd *modulebase.ModuleCommand) error {
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
-	return c.SetTimespan(span)
+	err = c.SetTimespan(span)
+
+	if err != nil {
+		errString := fmt.Sprintf("Error updating time: %v", err)
+		return errString, nil
+	}
+	return fmt.Sprintf("Voice Bonus time set to %v:%v on %v for %v hours", hour, minute, cmd.Args[0], duration), nil
 }
 
 func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {

@@ -1,5 +1,5 @@
 {
-    "Token": "***REMOVED***",
+    "Token": "YourToken",
     "MongoDB": "localhost",
     "Modules": [
         { "name": "admin", "enable": true },

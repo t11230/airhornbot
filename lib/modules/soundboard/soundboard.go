@@ -14,7 +14,7 @@ const ConfigName = "soundboard"
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
-		RootCommand: "sound",
+		RootCommand: "s",
 		SubKeys:     modulebase.SK{},
 		Function:    handleSoundCommand,
 	},

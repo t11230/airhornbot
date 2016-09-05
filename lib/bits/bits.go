@@ -78,7 +78,7 @@ func AddBits(session *discordgo.Session,
 }
 
 func RemoveBits(s *discordgo.Session, guildId string, userId string, amount int, reason string) {
-	AddBits(s, guildId, userId, amount, reason, true)
+	AddBits(s, guildId, userId, -amount, reason, true)
 }
 
 func GetBitsLeaderboard(guildId string, count int) []BitStatus {

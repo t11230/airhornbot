@@ -2,7 +2,7 @@
     "Token": "***REMOVED***",
     "MongoDB": "localhost",
     "Modules": [
-        { "name": "gambling", "enable": false, "options": {} },
+        { "name": "gambling", "enable": true, "options": {} },
         { "name": "gametrack", "enable": false },
         { "name": "greeter", "enable": true },
         { "name": "help", "enable": false },

@@ -115,7 +115,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Filter out normal messages
 	if !strings.HasPrefix(m.Content, PREFIX) {
-		log.Printf("Filtering non-command")
+		log.Debug("Filtering non-command")
 		return
 	}
 

@@ -25,7 +25,7 @@ You now have **%d bits**`
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
-		RootCommand: "voicebonus",
+		RootCommand: "vb",
 		SubKeys: modulebase.SK{
 			"set": modulebase.CN{
 				SubKeys: modulebase.SK{

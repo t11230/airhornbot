@@ -64,6 +64,14 @@ func betRoll(cmd *modulebase.ModuleCommand) (string, error) {
 			return buf.String(), nil
 		}
 	}
+
+	if maxnum <= 0 {
+		// User entered an invalid number of die sides
+		fmt.Fprintf(w, "**ERROR:** Invalid dice submitted: Dice number less than or equal to zero.")
+		w.Flush()
+		return buf.String(), nil
+	}
+
 	ante, err := strconv.Atoi(cmd.Args[0])
 	if err != nil {
 		//user entered non-numerical ante

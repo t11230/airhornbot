@@ -63,9 +63,8 @@ func handleDbStart() error {
 func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
 
-	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
-	if !hasPerm {
+	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
 		return "Insufficient permissions", nil
 	}
 
@@ -97,9 +96,8 @@ func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetAmount")
 
-	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
-	if !hasPerm {
+	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
 		return "Insufficient permissions", nil
 	}
 
@@ -125,9 +123,8 @@ func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetTime")
 
-	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "voicebonus-control")
-	if !hasPerm {
+	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
 		return "Insufficient permissions", nil
 	}
 

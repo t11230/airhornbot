@@ -63,6 +63,10 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Unable to find user", nil
 	}
 
+	if h.CheckPerm(user.ID, cmd.Args[0]) {
+		return "User already has that perm", nil
+	}
+
 	err = h.AddPerm(user.ID, cmd.Args[0])
 	if err != nil {
 		return "Error adding perm to user", nil
@@ -96,11 +100,7 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Unable to find user", nil
 	}
 
-	hasPerm, err := h.CheckPerm(user.ID, cmd.Args[0])
-	if err != nil {
-		return "Error checking perms", nil
-	}
-	if !hasPerm {
+	if !h.CheckPerm(user.ID, cmd.Args[0]) {
 		return "User does not have that permission", nil
 	}
 

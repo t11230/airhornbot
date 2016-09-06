@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
 	"math/rand"
 	"strconv"
@@ -33,6 +34,12 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"give": modulebase.CN{
 				Function: giveBits,
 			},
+			"award": modulebase.CN{
+				Function: awardBits,
+			},
+			"take": modulebase.CN{
+				Function: takeBits,
+			},
 		},
 		Function: handleRootCommand,
 	},
@@ -43,7 +50,13 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   nil,
 		Commands: &commandTree,
+		DBStart:  handleDbStart,
 	}, nil
+}
+
+func handleDbStart() error {
+	perms.CreatePerm("bits-admin")
+	return nil
 }
 
 func handleRootCommand(cmd *modulebase.ModuleCommand) (string, error) {

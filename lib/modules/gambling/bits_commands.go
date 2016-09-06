@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
 	"strconv"
 	"text/tabwriter"
@@ -82,6 +83,72 @@ func giveBits(cmd *modulebase.ModuleCommand) (string, error) {
 	message := fmt.Sprintf("Transferred %d bits from %v to %v",
 		amount,
 		utils.GetPreferredName(cmd.Guild, gifter.ID),
+		utils.GetPreferredName(cmd.Guild, user.ID))
+
+	return message, nil
+}
+
+func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
+	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "bits-admin") {
+		return "Insufficient permissions", nil
+	}
+
+	if len(cmd.Args) != 2 {
+		return giveBitsHelpString, nil
+	}
+
+	amount, err := strconv.Atoi(cmd.Args[0])
+	if err != nil {
+		return "Invalid amount", nil
+	}
+
+	if amount <= 0 {
+		return "Amount must be a positive nonzero integer", nil
+	}
+
+	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	if err != nil {
+		return "Unable to find user", nil
+	}
+
+	bits.AddBits(cmd.Session, cmd.Guild.ID, user.ID, amount, "Awarded bits", false)
+
+	message := fmt.Sprintf("Awarded %d bits to %v",
+		amount,
+		utils.GetPreferredName(cmd.Guild, user.ID))
+
+	return message, nil
+}
+
+func takeBits(cmd *modulebase.ModuleCommand) (string, error) {
+	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "bits-admin") {
+		return "Insufficient permissions", nil
+	}
+
+	if len(cmd.Args) != 2 {
+		return giveBitsHelpString, nil
+	}
+
+	amount, err := strconv.Atoi(cmd.Args[0])
+	if err != nil {
+		return "Invalid amount", nil
+	}
+
+	if amount <= 0 {
+		return "Amount must be a positive nonzero integer", nil
+	}
+
+	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	if err != nil {
+		return "Unable to find user", nil
+	}
+
+	bits.RemoveBits(cmd.Session, cmd.Guild.ID, user.ID, amount, "Took bits")
+
+	message := fmt.Sprintf("Took %d bits from %v",
+		amount,
 		utils.GetPreferredName(cmd.Guild, user.ID))
 
 	return message, nil

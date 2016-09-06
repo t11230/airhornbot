@@ -57,9 +57,8 @@ func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
-	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "greet-control")
-	if !hasPerm {
+	permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permHandle.CheckPerm(cmd.Message.Author.ID, "greet-control") {
 		return "Insufficient permissions", nil
 	}
 
@@ -77,7 +76,7 @@ func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
 	} else {
 		return "Invalid Args", nil
 	}
-	return "", nil
+	return "Updated greet pm config", nil
 }
 
 func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
@@ -85,9 +84,8 @@ func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
 }
 
 func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
-	perms := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	hasPerm, _ := perms.CheckPerm(cmd.Message.Author.ID, "greet-control")
-	if !hasPerm {
+	permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	if !permHandle.CheckPerm(cmd.Message.Author.ID, "greet-control") {
 		return "Insufficient permissions", nil
 	}
 
@@ -112,7 +110,7 @@ func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
 	} else {
 		return "Invalid Args", nil
 	}
-	return "", nil
+	return "Updated greet voice config", nil
 }
 
 // Called in response to a VoiceStateUpdate event

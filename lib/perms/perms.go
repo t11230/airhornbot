@@ -92,6 +92,11 @@ func GetPermsHandle(guildId string, namespace string) *PermsHandle {
 func (h *PermsHandle) AddPerm(userId string, perm string) error {
 	log.Debugf("Adding Perm %v to %v", perm, userId)
 
+	hasPerm := h.CheckPerm(userId, perm)
+	if hasPerm {
+		return errors.New("User already has that perm")
+	}
+
 	user := &UserPerm{UserID: userId}
 	result := &UserPerm{}
 
@@ -117,10 +122,7 @@ func (h *PermsHandle) AddPerm(userId string, perm string) error {
 func (h *PermsHandle) RemovePerm(userId string, perm string) error {
 	log.Debugf("Removing Perm %v from %v", perm, userId)
 
-	hasPerm, err := h.CheckPerm(userId, perm)
-	if err != nil {
-		return err
-	}
+	hasPerm := h.CheckPerm(userId, perm)
 	if !hasPerm {
 		return errors.New("User does not have that perm")
 	}
@@ -128,7 +130,7 @@ func (h *PermsHandle) RemovePerm(userId string, perm string) error {
 	user := &UserPerm{UserID: userId}
 	result := &UserPerm{}
 
-	err = h.UserPermsColl.Find(user).One(result)
+	err := h.UserPermsColl.Find(user).One(result)
 	if err != nil {
 		log.Errorf("Error finding UserPerm: %v", err)
 		return err
@@ -162,21 +164,21 @@ func (h *PermsHandle) RemovePerm(userId string, perm string) error {
 	return nil
 }
 
-func (h *PermsHandle) CheckPerm(userId string, perm string) (bool, error) {
+func (h *PermsHandle) CheckPerm(userId string, perm string) bool {
 	log.Debugf("Checking perm %v for %v", perm, userId)
 
 	result := &UserPerm{}
 
 	err := h.UserPermsColl.Find(&UserPerm{UserID: userId}).One(result)
 	if err == mgo.ErrNotFound {
-		return false, nil
+		return false
 	} else if err != nil {
 		log.Errorf("Error finding UserPerm: %v", err)
-		return false, err
+		return false
 	}
 
 	hasPerm, _ := permsContains(result.Perms, Perm{Name: perm})
-	return hasPerm, nil
+	return hasPerm
 }
 
 func permsContains(perms []Perm, find Perm) (bool, int) {

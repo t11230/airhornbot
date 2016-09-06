@@ -8,6 +8,7 @@ import (
 	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -54,7 +55,7 @@ func showBits(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func giveBits(cmd *modulebase.ModuleCommand) (string, error) {
-	if len(cmd.Args) != 2 {
+	if len(cmd.Args) < 2 {
 		return giveBitsHelpString, nil
 	}
 
@@ -67,7 +68,8 @@ func giveBits(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Amount must be a positive nonzero integer", nil
 	}
 
-	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	userName := strings.Join(cmd.Args[1:], " ")
+	user, err := utils.FindUser(cmd.Guild, userName)
 	if err != nil {
 		return "Unable to find user", nil
 	}
@@ -94,7 +96,7 @@ func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) != 2 {
+	if len(cmd.Args) < 2 {
 		return giveBitsHelpString, nil
 	}
 
@@ -107,7 +109,8 @@ func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Amount must be a positive nonzero integer", nil
 	}
 
-	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	userName := strings.Join(cmd.Args[1:], " ")
+	user, err := utils.FindUser(cmd.Guild, userName)
 	if err != nil {
 		return "Unable to find user", nil
 	}
@@ -127,7 +130,7 @@ func takeBits(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) != 2 {
+	if len(cmd.Args) < 2 {
 		return giveBitsHelpString, nil
 	}
 
@@ -140,7 +143,8 @@ func takeBits(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Amount must be a positive nonzero integer", nil
 	}
 
-	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	userName := strings.Join(cmd.Args[1:], " ")
+	user, err := utils.FindUser(cmd.Guild, userName)
 	if err != nil {
 		return "Unable to find user", nil
 	}

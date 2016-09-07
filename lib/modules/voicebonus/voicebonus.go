@@ -220,7 +220,9 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 
 	lastJoinTime := time.Unix(getUserLastJoin(v.GuildID, v.UserID), 0)
 
-	log.Debugf("Last join date: %v", lastJoinTime)
+	log.Debugf("Last join date: %v, now: %v", lastJoinTime, currentTime)
+
+	log.Debugf("%v %v %v", currentTime.After(startDate), time.Since(startDate).Hours() < float64(span.Duration), lastJoinTime.Before(startDate))
 
 	if currentTime.After(startDate) &&
 		time.Since(startDate).Hours() < float64(span.Duration) &&

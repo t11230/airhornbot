@@ -7,6 +7,7 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/admin"
 	"github.com/t11230/ramenbot/lib/modules/gambling"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
+	"github.com/t11230/ramenbot/lib/modules/rolemod"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
 	"github.com/t11230/ramenbot/lib/modules/voicebonus"
@@ -19,6 +20,7 @@ var (
 		voicebonus.ConfigName: voicebonus.SetupFunc,
 		gambling.ConfigName:   gambling.SetupFunc,
 		admin.ConfigName:      admin.SetupFunc,
+		rolemod.ConfigName:    rolemod.SetupFunc,
 	}
 
 	commandMap = map[string]modulebase.CN{}

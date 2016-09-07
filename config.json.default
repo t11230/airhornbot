@@ -7,7 +7,7 @@
         { "name": "gametrack", "enable": false },
         { "name": "greeter", "enable": true },
         { "name": "help", "enable": false },
-        { "name": "rolemod", "enable": false },
+        { "name": "rolemod", "enable": true },
         { "name": "soundboard", "enable": true },
         { "name": "voicebonus", "enable": true }
     ]

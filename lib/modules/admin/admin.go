@@ -8,6 +8,7 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -58,7 +59,8 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Invalid perm", nil
 	}
 
-	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	userName := strings.Join(cmd.Args[1:], " ")
+	user, err := utils.FindUser(cmd.Guild, userName)
 	if err != nil {
 		return "Unable to find user", nil
 	}
@@ -95,7 +97,8 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Invalid perm", nil
 	}
 
-	user, err := utils.FindUser(cmd.Guild, cmd.Args[1])
+	userName := strings.Join(cmd.Args[1:], " ")
+	user, err := utils.FindUser(cmd.Guild, userName)
 	if err != nil {
 		return "Unable to find user", nil
 	}

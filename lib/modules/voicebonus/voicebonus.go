@@ -220,9 +220,12 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 
 	lastJoinTime := time.Unix(getUserLastJoin(v.GuildID, v.UserID), 0)
 
+	log.Debugf("Last join date: %v", lastJoinTime)
+
 	if currentTime.After(startDate) &&
 		time.Since(startDate).Hours() < float64(span.Duration) &&
 		lastJoinTime.Before(startDate) {
+		log.Debug("Giving bits for join")
 
 		bits.AddBits(s, v.GuildID, v.UserID, c.Amount(), "Voice join bonus", true)
 
@@ -232,9 +235,9 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 
 		channel, _ := s.UserChannelCreate(v.UserID)
 		s.ChannelMessageSend(channel.ID, message)
-	}
 
-	updateUserLastJoin(v.GuildID, v.UserID, currentTime.Unix())
+		updateUserLastJoin(v.GuildID, v.UserID, currentTime.Unix())
+	}
 }
 
 type voicebonusLastJoin struct {

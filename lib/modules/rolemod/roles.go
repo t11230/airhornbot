@@ -17,7 +17,19 @@ var (
 )
 
 // Module name used in the config file
-const ConfigName = "rolemod"
+
+const (
+    ConfigName = "rolemod"
+
+	roleHelpString = `**role usage:** !!role *function* *args*
+    **functions:** color`
+    
+    colorHelpString = `**color usage:** color *colorname*
+    Changes *user's* name color to *colorname*.
+    **color names:** red, orange, yellow, green, blue, purple, disco, clear
+    Use color *clear* to reset to black.
+    Use color *disco* for disco party.`
+)
 
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
@@ -26,6 +38,9 @@ var commandTree = []modulebase.ModuleCommandTree{
 		SubKeys: modulebase.SK{
 			"color": modulebase.CN{
 				Function:      handleChangeColor,
+			},
+            "help": modulebase.CN{
+				Function:   handleRoleHelp,
 			},
 		},
 	},
@@ -36,6 +51,10 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Commands: &commandTree,
 	}, nil
+}
+
+func handleRoleHelp(cmd *modulebase.ModuleCommand) (string, error) {
+    return roleHelpString, nil
 }
 
 func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Message) string {
@@ -159,8 +178,14 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
 func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
     createColors(cmd.Session, cmd.Guild, cmd.Message)
     user := cmd.Message.Author
+    if len(cmd.Args) != 1 {
+        return colorHelpString, nil
+    }
     log.Info("Case: "+cmd.Args[0])
     color := cmd.Args[0]
+    if color == "help" {
+        return colorHelpString, nil
+    }
     changeColor(cmd.Session, cmd.Guild, user, color)
     return "", nil
 }

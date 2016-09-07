@@ -9,7 +9,7 @@ RamenBot utilizes the [discordgo](https://github.com/bwmarrin/discordgo) library
 - Reorganized code into multiple files
 
 ## Usage
-RamenBot Bot has two components, a bot client that handles the playing of loyal airhorns, and a web server that implements OAuth2 and stats. Once added to your server, RamenBot can be summoned by running `!!airhorn`.
+RamenBot Bot has two components, a bot client that handles a plethora of cool features, and a web server that implements OAuth2 and stats. Once added to your server, RamenBot can be summoned by running `!!*root_command* *function* *arguments*`.  Full documentation on root commands and their functions to come!
 
 
 ### Running the Bot
@@ -19,10 +19,17 @@ RamenBot Bot has two components, a bot client that handles the playing of loyal 
 go get github.com/t11230/ramenbot/cmd/bot
 go install github.com/t11230/ramenbot/cmd/bot
 ```
+ **Then run the setup script:**
+
+ ```
+./setup
+ ```
+ You will be prompted to enter your Bot Account Token, location to run MongoDB, and to specify which modules you want enabled.
+
  **Then run the following command:**
 
 ```
-bot -r "localhost:6379" -t "MY_BOT_ACCOUNT_TOKEN" -o OWNER_ID
+bot
 ```
 
 ### Running the Web Server

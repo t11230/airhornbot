@@ -46,7 +46,7 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) != 2 {
+	if len(cmd.Args) < 2 {
 		return "Invalid or missing arguments", nil
 	}
 
@@ -84,7 +84,7 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) != 2 {
+	if len(cmd.Args) < 2 {
 		return "Invalid or missing arguments", nil
 	}
 

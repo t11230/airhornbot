@@ -3,4 +3,6 @@ language: go
 go:
   - tip
 
+install: go get ./...
+
 script: make bot

@@ -4,7 +4,6 @@
     "Modules": [
         { "name": "admin", "enable": true },
         { "name": "gambling", "enable": true, "options": {} },
-        { "name": "gametrack", "enable": false },
         { "name": "greeter", "enable": true },
         { "name": "help", "enable": false },
         { "name": "rolemod", "enable": true },

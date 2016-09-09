@@ -11,29 +11,24 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
-	redis "gopkg.in/redis.v3"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
 var (
 	// Permission Constants
-	READ_MESSAGES 		= 1024
-	SEND_MESSAGES 		= 2048
-	CONNECT       		= 1048576
-	SPEAK         		= 2097152
-	CHANGE_NICKNAME 	= 0x04000000
-	MANAGE_NICKNAMES 	= 0x08000000
-	MANAGE_ROLES 		= 0x10000000
-	// MANAGE_GUILD		= 0x00000020
-	// ADMINISTRATOR 		= 0x00000008
-
-	// Redis client (for stats)
-	rcli *redis.Client
+	ADMINISTRATOR    = 0x00000008
+	MANAGE_GUILD     = 0x00000020
+	READ_MESSAGES    = 0x00000400
+	SEND_MESSAGES    = 0x00000800
+	CONNECT          = 0x00100000
+	SPEAK            = 0x00200000
+	CHANGE_NICKNAME  = 0x04000000
+	MANAGE_NICKNAMES = 0x08000000
+	MANAGE_ROLES     = 0x10000000
 
 	// Oauth2 Config
 	oauthConf *oauth2.Config
@@ -43,9 +38,6 @@ var (
 
 	// Used for pushing live stat updates to the client
 	es eventsource.EventSource
-
-	// Source of the HTML page (cached in memory for performance)
-	htmlIndexPage string
 
 	// Base URL of the discord API
 	apiBaseUrl = "https://discordapp.com/api"
@@ -63,47 +55,6 @@ type CountUpdate struct {
 func (c *CountUpdate) ToJSON() []byte {
 	data, _ := json.Marshal(c)
 	return data
-}
-
-func NewCountUpdate() *CountUpdate {
-	var (
-		totalCmd  *redis.StringCmd
-		usersCmd  *redis.IntCmd
-		guildsCmd *redis.IntCmd
-		chansCmd  *redis.IntCmd
-		secretCmd *redis.StringCmd
-	)
-
-	// Make a pipelined request to redis for all the counter values
-	errors, err := rcli.Pipelined(func(pipe *redis.Pipeline) error {
-		totalCmd = pipe.Get("airhorn:a:total")
-		usersCmd = pipe.SCard("airhorn:a:users")
-		guildsCmd = pipe.SCard("airhorn:a:guilds")
-		chansCmd = pipe.SCard("airhorn:a:channels")
-		secretCmd = pipe.Get("airhorn:a:sound:truck")
-		return nil
-	})
-
-	// Generally this is not a huge deal, lets try to continue on
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":  err,
-			"errors": errors,
-		}).Warning("Failed to get a count update from redis")
-	}
-
-	secretCount := secretCmd.Val()
-	if secretCount == "" {
-		secretCount = "0"
-	}
-
-	return &CountUpdate{
-		Total:          totalCmd.Val(),
-		UniqueUsers:    strconv.FormatInt(usersCmd.Val(), 10),
-		UniqueGuilds:   strconv.FormatInt(guildsCmd.Val(), 10),
-		UniqueChannels: strconv.FormatInt(chansCmd.Val(), 10),
-		SecretCount:    secretCmd.Val(),
-	}
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -144,7 +95,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	// OR the permissions we want
-	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK | CHANGE_NICKNAME | MANAGE_NICKNAMES | MANAGE_ROLES 
+	perms := READ_MESSAGES | SEND_MESSAGES | CONNECT | SPEAK | CHANGE_NICKNAME | MANAGE_NICKNAMES | MANAGE_ROLES
 
 	// Return a redirect to the ouath provider
 	url := oauthConf.AuthCodeURL(session.Values["state"].(string), oauth2.AccessTypeOnline)
@@ -268,11 +219,6 @@ func server() {
 	server.HandleFunc("/login", handleLogin)
 	server.HandleFunc("/callback", handleCallback)
 
-	// Only add this route if we have stats to push (e.g. redis connection)
-	if es != nil {
-		server.Handle("/events", es)
-	}
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "14000"
@@ -302,69 +248,12 @@ func server() {
 	http.ListenAndServe(":"+port, loggedRouter)
 }
 
-func broadcastLoop() {
-	var id int = 0
-	for {
-		time.Sleep(time.Second * 1)
-
-		es.SendEventMessage(string(NewCountUpdate().ToJSON()), "message", strconv.Itoa(id))
-		id += 1
-	}
-}
-
-func connectToRedis(connStr string) (err error) {
-	log.WithFields(log.Fields{
-		"host": connStr,
-	}).Info("Connecting to redis")
-
-	// Open the connection
-	rcli = redis.NewClient(&redis.Options{Addr: connStr, DB: 0})
-
-	// Attempt to ping it
-	_, err = rcli.Ping().Result()
-
-	if err != nil {
-		log.WithFields(log.Fields{
-			"host":  connStr,
-			"error": err,
-		}).Error("Failed to connect to redis")
-		fmt.Printf("Failed to connect to redis: %s\n", err)
-		return err
-	}
-
-	return nil
-}
-
 func main() {
 	var (
 		ClientID     = flag.String("i", "", "OAuth2 Client ID")
 		ClientSecret = flag.String("s", "", "OAtuh2 Client Secret")
-		Redis        = flag.String("r", "", "Redis Connection String")
-		err          error
 	)
 	flag.Parse()
-
-	if *Redis != "" {
-		// First, open a redis connection we use for stats
-		if connectToRedis(*Redis) != nil {
-			return
-		}
-
-		// Now start the eventsource loop for client-side stat update
-		es = eventsource.New(nil, nil)
-		defer es.Close()
-		go broadcastLoop()
-	}
-
-	// Load the HTML static page
-	data, err := ioutil.ReadFile("templates/index.html")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to open index.html")
-		return
-	}
-	htmlIndexPage = string(data)
 
 	// Create a cookie store
 	store = sessions.NewCookieStore([]byte(*ClientSecret))

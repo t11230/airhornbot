@@ -1,4 +1,6 @@
 # RamenBot
+[![Build Status](https://travis-ci.org/t11230/ramenbot.svg?branch=master)](https://travis-ci.org/t11230/ramenbot)
+
 RamenBot utilizes the [discordgo](https://github.com/bwmarrin/discordgo) library, a free and open source library. RamenBot requires Go 1.4 or higher.
 
 ## Changes to original bot

@@ -22,6 +22,7 @@ const joinMessage = `
 Welcome **%s**, you get %d bits for joining this week!
 You now have **%d bits**`
 
+const helpString = "**!!vb** : This module allows the user to control the bit bonus for joining a voice channel.\n"
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -52,6 +53,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 		Events:   &events,
 		Commands: &commandTree,
 		DBStart:  handleDbStart,
+		Help:     helpString,
 	}, nil
 }
 

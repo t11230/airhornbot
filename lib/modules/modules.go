@@ -7,6 +7,7 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/admin"
 	"github.com/t11230/ramenbot/lib/modules/gambling"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
+	"github.com/t11230/ramenbot/lib/modules/help"
 	"github.com/t11230/ramenbot/lib/modules/rolemod"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
@@ -15,13 +16,16 @@ import (
 
 var (
 	moduleSetupFunctions = map[string]modulebase.ModuleSetupFunc{
+		admin.ConfigName:      admin.SetupFunc,
+		gambling.ConfigName:   gambling.SetupFunc,
 		greeter.ConfigName:    greeter.SetupFunc,
+		rolemod.ConfigName:    rolemod.SetupFunc,
 		soundboard.ConfigName: soundboard.SetupFunc,
 		voicebonus.ConfigName: voicebonus.SetupFunc,
-		gambling.ConfigName:   gambling.SetupFunc,
-		admin.ConfigName:      admin.SetupFunc,
-		rolemod.ConfigName:    rolemod.SetupFunc,
+		help.ConfigName:       help.SetupFunc,
 	}
+
+	moduleHelpStrings = map[string]string{}
 
 	commandMap = map[string]modulebase.CN{}
 
@@ -69,9 +73,12 @@ func LoadModules(configs []modulebase.ModuleConfig) error {
 			dbStartFunctions = append(dbStartFunctions, info.DBStart)
 		}
 
+		if info.Help != "" {
+			moduleHelpStrings[conf.Name] = info.Help
+		}
 		log.Debugf("Command trees: %v", commandMap)
 	}
-
+	modulebase.GetModuleHelp = getModuleHelpString
 	log.Debug("Registered commands:")
 	for c := range commandMap {
 		log.Debugf("%v", c)
@@ -80,6 +87,11 @@ func LoadModules(configs []modulebase.ModuleConfig) error {
 	log.Debugf("Registered %v events", len(eventList))
 	return nil
 }
+
+func getModuleHelpString() (map[string]string, error){
+	return moduleHelpStrings, nil
+}
+
 
 func linkModuleCommandTree(tree *modulebase.ModuleCommandTree) modulebase.CN {
 	root := modulebase.CN{
@@ -123,10 +135,15 @@ func HandleCommand(cmd *Command) {
 		Message: cmd.Message,
 	}
 
+	log.Debug("CHECKING LEN ARGS")
 	// If there are no args, just call the root's function
 	if len(cmd.Args) <= 0 {
-		node.Function(moduleCmd)
-		return
+		log.Debug("ROOT FUNCTION CALLED")
+		message, err := node.Function(moduleCmd)
+		if err == nil {
+			cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, message)
+			return
+		}
 	}
 
 	args := cmd.Args

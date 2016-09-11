@@ -16,7 +16,7 @@ import (
 
 // Module name used in the config file
 const ConfigName = "greeter"
-
+const helpString = "**!!greet** : This module allows the user to set text or voice greetings for joining a call.\n"
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -43,6 +43,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 		Events:   &events,
 		Commands: &commandTree,
 		DBStart:  handleDbStart,
+		Help:     helpString,
 	}, nil
 }
 

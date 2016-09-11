@@ -9,7 +9,10 @@ import (
 )
 
 // Module name used in the config file
-const ConfigName = "soundboard"
+const (
+	ConfigName = "soundboard"
+	helpString = "**!!s** : This module allows the user to play sounds from a dank soundboard.\n"
+)
 
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
@@ -25,6 +28,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   nil,
 		Commands: &commandTree,
+		Help:     helpString,
 	}, nil
 }
 

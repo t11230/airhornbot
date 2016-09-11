@@ -9,13 +9,14 @@ type ModuleConfig struct {
 	Enable  bool
 	Options interface{}
 }
-
+type ModuleHelpFunc func() (map[string]string, error)
 type ModuleSetupFunc func(*ModuleConfig) (*ModuleSetupInfo, error)
 type ModuleDBStartFunc func() error
 
 type ModuleSetupInfo struct {
 	Events   *[]interface{}
 	Commands *[]ModuleCommandTree
+	Help	 string
 	DBStart  ModuleDBStartFunc
 }
 
@@ -43,3 +44,5 @@ type CN struct {
 	Function      ModuleCommandFunc
 	ErrorFunction ModuleCommandErrorFunc
 }
+
+var GetModuleHelp ModuleHelpFunc

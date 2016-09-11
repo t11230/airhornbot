@@ -18,36 +18,31 @@ if(gamblingyn=="Y" or gamblingyn=="y"):
     d['Modules'][1]['enable']= True
 elif(gamblingyn=="N" or gamblingyn=="n"):
     d['Modules'][1]['enable']= False
-gametrackyn = raw_input("Do you want game tracking enabled? (y/n): ")
-if(gametrackyn=="Y" or gametrackyn=="y"):
-    d['Modules'][2]['enable']= True
-elif(gametrackyn=="N" or gametrackyn=="n"):
-    d['Modules'][2]['enable']= False
 greeteryn = raw_input("Do you want greeter enabled? (y/n): ")
 if(greeteryn=="Y" or greeteryn=="y"):
-    d['Modules'][3]['enable']= True
+    d['Modules'][2]['enable']= True
 elif(greeteryn=="N" or greeteryn=="n"):
-    d['Modules'][3]['enable']= False
+    d['Modules'][2]['enable']= False
 helpyn = raw_input("Do you want help enabled? (y/n): ")
 if(helpyn=="Y" or helpyn=="y"):
-    d['Modules'][4]['enable']= True
+    d['Modules'][3]['enable']= True
 elif(helpyn=="N" or helpyn=="n"):
-    d['Modules'][4]['enable']= False
+    d['Modules'][3]['enable']= False
 rolemodyn = raw_input("Do you want role modification enabled? (y/n): ")
 if(rolemodyn=="Y" or rolemodyn=="y"):
-    d['Modules'][5]['enable']= True
+    d['Modules'][4]['enable']= True
 elif(rolemodyn=="N" or rolemodyn=="n"):
-    d['Modules'][5]['enable']= False
+    d['Modules'][4]['enable']= False
 soundboardyn = raw_input("Do you want soundboard enabled? (y/n): ")
 if(soundboardyn=="Y" or soundboardyn=="y"):
-    d['Modules'][6]['enable']= True
+    d['Modules'][5]['enable']= True
 elif(soundboardyn=="N" or soundboardyn=="n"):
-    d['Modules'][6]['enable']= False
+    d['Modules'][5]['enable']= False
 voicebonusyn = raw_input("Do you want voicebonus enabled? (y/n): ")
 if(voicebonusyn=="Y" or voicebonusyn=="y"):
-    d['Modules'][7]['enable']= True
+    d['Modules'][6]['enable']= True
 elif(voicebonusyn=="N" or voicebonusyn=="n"):
-    d['Modules'][7]['enable']= False
+    d['Modules'][6]['enable']= False
 
 config = json.dumps(d)
 config_file = open("config.json", "w")

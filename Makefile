@@ -12,7 +12,7 @@ all: bot auth
 bot: $(BOT_SOURCES)
 	go build -o ${BOT_BINARY} $(BOT_SOURCES)
 
-auth: cmd/authserver/auth.go static
+auth: cmd/authserver/auth.go
 	go build -o ${WEB_BINARY} cmd/authserver/auth.go
 
 npm: static/package.json

@@ -14,6 +14,7 @@ var (
     green string
     blue string
     purple string
+    disco string
 )
 
 // Module name used in the config file
@@ -21,14 +22,22 @@ var (
 const (
     ConfigName = "rolemod"
 
-	roleHelpString = `**role usage:** !!role *function* *args*
-    **functions:** color`
-    
-    colorHelpString = `**color usage:** color *colorname*
-    Changes *user's* name color to *colorname*.
+    helpString = "**!!role** : This module allows the user to choose from a set of roles.\n"
+
+	roleHelpString = `
+    **role usage:** !!role *function* *args*
+    **overview:** This module allows the user to choose from a set of roles if they have the right permissions.
+    **functions:**
+        *color:* This function allows the user to change the color of their name.**`
+
+    colorHelpString = `
+    **color usage:**!! role color *colorname*
+        Changes *user's* name color to *colorname*.
     **color names:** red, orange, yellow, green, blue, purple, disco, clear
-    Use color *clear* to reset to black.
-    Use color *disco* for disco party.`
+        Use color *clear* to reset to black.
+        Use color *disco* for disco party.`
+
+    perms = 0x00000001 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00004000 | 0x00008000 | 0x00010000 | 0x00020000 | 0x00100000 | 0x00200000
 )
 
 // List of commands that this module accepts
@@ -50,6 +59,7 @@ var commandTree = []modulebase.ModuleCommandTree{
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
 	return &modulebase.ModuleSetupInfo{
 		Commands: &commandTree,
+        Help:     helpString,
 	}, nil
 }
 
@@ -64,15 +74,17 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
     green_exists := false
     blue_exists := false
     purple_exists := false
-    perms := 0x00000001 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00004000 | 0x00008000 | 0x00010000 | 0x00020000 | 0x00100000 | 0x00200000
+    disco_exists := false
     for _, role := range(guild.Roles){
         if role.Name == "red" {
             red_exists = true
             red = role.ID
-        } else if role.Name == "orange" {
+        }
+        if role.Name == "orange" {
             orange_exists = true
             orange = role.ID
-        } else if role.Name == "yellow" {
+        }
+        if role.Name == "yellow" {
             yellow_exists = true
             yellow = role.ID
         }
@@ -87,6 +99,10 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
         if role.Name == "purple" {
             purple_exists = true
             purple = role.ID
+        }
+        if role.Name == "disco" {
+            disco_exists = true
+            disco = role.ID
         }
     }
     if !red_exists {
@@ -172,6 +188,20 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
         }
         purple = purplerole.ID
     }
+
+    if !disco_exists {
+        discorole, err := s.GuildRoleCreate(guild.ID)
+        if err != nil {
+            log.Error("Failed to create red role")
+            return ""
+        }
+        discorole, err = s.GuildRoleEdit(guild.ID, discorole.ID, "disco", 0xe74c3c, false, perms)
+        if err != nil {
+            log.Error("Failed to add red role")
+            return ""
+        }
+        disco = discorole.ID
+    }
     return ""
 }
 
@@ -193,7 +223,7 @@ func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
 func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User, c string) string {
     var err error
     var color string
-    colors := []string{red, orange, yellow, green, blue, purple}
+    colors := []string{red, orange, yellow, green, blue, purple, disco}
     member := utils.GetMember(guild, user.ID)
     switch c {
     case "red":
@@ -209,8 +239,8 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.U
     case "purple":
         color = purple
     case "disco":
-         go discoParty(s, guild, user)
-         return ""
+        color = disco
+        go discoParty(s, guild, user)
     case "clear":
         for i, role := range(member.Roles){
             if utils.Scontains(role, colors...) {
@@ -247,12 +277,12 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.U
 
 func discoParty(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User) string {
     for i := 0; i < 30; i++ {
-        changeColor(s, guild, user, "red")
-        changeColor(s, guild, user, "orange")
-        changeColor(s, guild, user, "yellow")
-        changeColor(s, guild, user, "green")
-        changeColor(s, guild, user, "blue")
-        changeColor(s, guild, user, "purple")
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe74c3c, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe67e22, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xf1c40f, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x2ecc71, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x3498db, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, perms)
     }
     changeColor(s, guild, user, "clear")
     return ""

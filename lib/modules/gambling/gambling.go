@@ -15,6 +15,8 @@ import (
 
 const ConfigName = "gambling"
 
+const helpString = "**!!$** : This module allows the user to use a number of gambling events and functions.\n"
+
 var commandTree = []modulebase.ModuleCommandTree{
 	{
 		RootCommand: "$",
@@ -51,6 +53,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 		Events:   nil,
 		Commands: &commandTree,
 		DBStart:  handleDbStart,
+		Help:     helpString,
 	}, nil
 }
 

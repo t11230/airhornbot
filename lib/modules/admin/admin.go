@@ -14,6 +14,8 @@ import (
 
 const ConfigName = "admin"
 
+const helpString = "**!!adm** : This module allows the user to control permissions for using other modules.\n"
+
 var commandTree = []modulebase.ModuleCommandTree{
 	{
 		RootCommand: "adm",
@@ -36,6 +38,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   nil,
 		Commands: &commandTree,
+		Help:     helpString, 
 	}, nil
 }
 

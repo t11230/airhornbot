@@ -38,7 +38,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	return &modulebase.ModuleSetupInfo{
 		Events:   nil,
 		Commands: &commandTree,
-		Help:     helpString, 
+		Help:     helpString,
 	}, nil
 }
 
@@ -53,12 +53,12 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Invalid or missing arguments", nil
 	}
 
-	h := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	h := perms.GetPermsHandle(cmd.Guild.ID)
 	permExist, err := perms.PermExists(cmd.Args[0])
 	if err != nil {
 		return "Error checking perm", nil
 	}
-	if !permExist {
+	if permExist == nil {
 		return "Invalid perm", nil
 	}
 
@@ -68,11 +68,11 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Unable to find user", nil
 	}
 
-	if h.CheckPerm(user.ID, cmd.Args[0]) {
+	if h.CheckPerm(user.ID, permExist) {
 		return "User already has that perm", nil
 	}
 
-	err = h.AddPerm(user.ID, cmd.Args[0])
+	err = h.AddPerm(user.ID, permExist)
 	if err != nil {
 		return "Error adding perm to user", nil
 	}
@@ -91,12 +91,12 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Invalid or missing arguments", nil
 	}
 
-	h := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+	h := perms.GetPermsHandle(cmd.Guild.ID)
 	permExist, err := perms.PermExists(cmd.Args[0])
 	if err != nil {
 		return "Error checking perm", nil
 	}
-	if !permExist {
+	if permExist == nil {
 		return "Invalid perm", nil
 	}
 
@@ -106,11 +106,11 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Unable to find user", nil
 	}
 
-	if !h.CheckPerm(user.ID, cmd.Args[0]) {
+	if !h.CheckPerm(user.ID, permExist) {
 		return "User does not have that permission", nil
 	}
 
-	err = h.RemovePerm(user.ID, cmd.Args[0])
+	err = h.RemovePerm(user.ID, permExist)
 	if err != nil {
 		log.Errorf("Error: %v", err)
 		return "Error removing perm from user", nil

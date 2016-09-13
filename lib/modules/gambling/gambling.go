@@ -37,15 +37,19 @@ var commandTree = []modulebase.ModuleCommandTree{
 				Function: giveBits,
 			},
 			"award": modulebase.CN{
-				Function: awardBits,
+				Function:    awardBits,
+				Permissions: []perms.Perm{bitsAdminPerm},
 			},
 			"take": modulebase.CN{
-				Function: takeBits,
+				Function:    takeBits,
+				Permissions: []perms.Perm{bitsAdminPerm},
 			},
 		},
 		Function: handleRootCommand,
 	},
 }
+
+var bitsAdminPerm = perms.Perm{"bits-admin"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
@@ -58,7 +62,11 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleDbStart() error {
-	perms.CreatePerm("bits-admin")
+	err := perms.CreatePerm(bitsAdminPerm.Name)
+	if err != nil {
+		log.Errorf("Error creating perm: %v", err)
+		return err
+	}
 	return nil
 }
 

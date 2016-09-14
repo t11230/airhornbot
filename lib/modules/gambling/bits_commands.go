@@ -13,8 +13,33 @@ import (
 )
 
 const (
-	giveBitsHelpString = `**give usage:** give *amount* *user*
-	Gives *user* *amount* bits.`
+	showBitsHelpString = `**BITS**
+This function allows the user to display the bit values of users in the server.
+
+**usage:**!!$ bits *<me>*
+	If no argument is passed to bits, the bit values of all users in the server are printed from highest to lowest.
+	If *me* is passed as an argument, only the caller's bit value is displayed.`
+
+	giveBitsHelpString = `**GIVE**
+This function allows the user to give their bits to another user.
+
+**usage:**!!$ give *amount* *user*
+	Gives *user* *amount* bits.
+	requires bits-admin permissions`
+
+	awardBitsHelpString = `**AWARD**
+This function allows the user to create bits out of thin air and give them to another user.
+
+**usage:**!!$ award *amount* *user*
+	Awards *user* *amount* bits.
+	requires bits-admin permissions`
+
+	takeBitsHelpString = `**TAKE**
+This function allows the user to take bits from another user.
+
+**usage:**!!$ take *amount* *user*
+	Takes *amount* bits from *user*.
+	requires bits-admin permissions`
 )
 
 func showBits(cmd *modulebase.ModuleCommand) (string, error) {
@@ -39,9 +64,9 @@ func showBits(cmd *modulebase.ModuleCommand) (string, error) {
 	if cmd.Args[0] == "me" {
 		userId = cmd.Message.Author.ID
 	} else if cmd.Args[0] == "help" {
-		// TODO
+		return showBitsHelpString, nil
 	} else {
-		// TODO
+		return showBitsHelpString, nil
 	}
 
 	b := bits.GetBits(cmd.Guild.ID, userId)
@@ -97,7 +122,7 @@ func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) < 2 {
-		return giveBitsHelpString, nil
+		return awardBitsHelpString, nil
 	}
 
 	amount, err := strconv.Atoi(cmd.Args[0])
@@ -131,7 +156,7 @@ func takeBits(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) < 2 {
-		return giveBitsHelpString, nil
+		return takeBitsHelpString, nil
 	}
 
 	amount, err := strconv.Atoi(cmd.Args[0])

@@ -37,7 +37,7 @@ func handleHelp(cmd *modulebase.ModuleCommand) (string, error) {
     for _, help := range helpStrings {
         buffer.WriteString(help)
     }
-    buffer.WriteString("\nFor more info on using any of these modules, type the module followed by **help**\n")
+    buffer.WriteString("\nFor more info on using any of these modules, type **!![module name] help**\n")
     helpString = buffer.String()
     return helpString, nil
 }

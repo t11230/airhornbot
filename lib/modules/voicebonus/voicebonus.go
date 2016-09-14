@@ -16,13 +16,44 @@ import (
 	"time"
 )
 
-const ConfigName = "voicebonus"
+const (
 
-const joinMessage = `
-Welcome **%s**, you get %d bits for joining this week!
-You now have **%d bits**`
+	ConfigName = "voicebonus"
 
-const helpString = "**!!vb** : This module allows the user to control the bit bonus for joining a voice channel.\n"
+	joinMessage = `
+	Welcome **%s**, you get %d bits for joining this week!
+	You now have **%d bits**`
+
+	helpString = "**!!vb** : This module allows the user to control the bit bonus for joining a voice channel.\n"
+
+	vbHelpString = `**VB**
+This module allows the user to control the bit bonus for joining a voice channel.
+
+**usage:** !!vb set *function* *args...*  **OR** !!vb set *status*
+
+**permissions required:** voicebonus-control
+
+If true or false is passed as the argument to !!vb set, then it will turn the voice bonus on or off accordingly.
+Otherwise, it will call the function that is passed to it with the arguments following it.
+
+**functions:**
+    *amount:* This function allows the user to set the bit amount of the voice bonus.
+	*time:* This function allows the user to when a user must join the call to receive the voice bonus.
+
+For more info on using any of these functions, type **!!vb set [function name] help**`
+
+	amountHelpString = `**AMOUNT**
+This function allows the user to set the bit amount of the voice bonus.
+
+**usage:** !!vb set amount *value*
+	Sets the value of the voice bonus to the integer value specified by *value*`
+
+	timeHelpString = `**TIME**
+This function allows the user to set when a user must join the call to receive the voice bonus.
+
+**usage:** !!vb set time *weekday* *starttime* *endtime*
+	Sets the time range of the voice bonus from the UTC time *starttime* to the UTC time *endtime* every week on *weekday*`
+)
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -65,19 +96,19 @@ func handleDbStart() error {
 func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
 
+	if len(cmd.Args) == 0 || cmd.Args[0]=="help" {
+		return vbHelpString, nil
+	}
+
 	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
 	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) == 0 {
-		return "Missing arguments", nil
-	}
-
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
 	enable, err := utils.EnableToBool(cmd.Args[0])
 	if err != nil {
-		return "Invalid argument", nil
+		return vbHelpString, nil
 	}
 
 	err = c.Enable(enable)
@@ -104,12 +135,12 @@ func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) == 0 {
-		return "Missing amount", nil
+		return amountHelpString, nil
 	}
 
 	amount, err := strconv.Atoi(cmd.Args[0])
 	if err != nil {
-		return "Invalid amount", nil
+		return amountHelpString, nil
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -130,8 +161,8 @@ func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 		return "Insufficient permissions", nil
 	}
 
-	if len(cmd.Args) != 3 {
-		return "Missing or invalid args", nil
+	if len(cmd.Args) != 3 || cmd.Args[0]=="help" {
+		return timeHelpString, nil
 	}
 
 	weekday := utils.ToWeekday(cmd.Args[0])

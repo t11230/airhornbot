@@ -8,7 +8,8 @@ import (
 	"os/signal"
 	"strings"
 	"time"
-
+	"syscall"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 
@@ -23,8 +24,11 @@ var (
 
 	// Prefix for chat commands
 	PREFIX = "!!"
+	buildstamp = ""
+	githash = ""
 )
 
+const keikaku = "**TRANSLATOR'S NOTE:** Keikaku means plan"
 func init() {
 	// Seed the random number generator.
 	rand.Seed(time.Now().UnixNano())
@@ -35,6 +39,24 @@ func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	s.UpdateStatus(0, "Dank memes")
 
 	modules.InitEvents(s)
+}
+
+func handlePatchUpdate() {
+	var err error
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGUSR1, syscall.SIGUSR2)
+    sig := <-sigs
+    if sig == syscall.SIGUSR1 {
+		err = syscall.Exec("./patch", []string{}, nil)
+	}
+	if sig == syscall.SIGUSR2 {
+		err = syscall.Exec("./patch_verbose", []string{}, nil)
+	} else {
+		log.Error("Unrecognized Signal")
+	}
+	if err!=nil{
+		log.Error("Exec failed in handlePatchUpdate")
+	}
 }
 
 func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
@@ -75,6 +97,20 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// Handle version check
+	if strings.Compare(m.Content, "--version")==0 {
+		gitstring := fmt.Sprintf("**Git Commit Hash:** %s\n", githash)
+		buildstring := fmt.Sprintf("**UTC Build Time:** %s\n", buildstamp)
+		s.ChannelMessageSend(channel.ID, gitstring)
+		s.ChannelMessageSend(channel.ID, buildstring)
+		return
+	}
+
+	// Handle massages with Keikaku in them
+	if strings.Contains(m.Content, "keikaku") {
+		s.ChannelMessageSend(channel.ID, keikaku)
+		return
+	}
 	// Filter out normal messages
 	if !strings.HasPrefix(m.Content, PREFIX) {
 		log.Debug("Filtering non-command")
@@ -121,13 +157,30 @@ func onPresenceUpdate(s *discordgo.Session, u *discordgo.PresenceUpdate) {
 
 func main() {
 	var (
+		version = flag.Bool("version", false, "Version")
 		verbose = flag.Bool("v", false, "Verbose")
+		patch = flag.Bool("p", false, "Patching")
 		err     error
 	)
 	flag.Parse()
 
+	if *version {
+		fmt.Printf("Git Commit Hash: %s\n", githash)
+		fmt.Printf("UTC Build Time: %s\n", buildstamp)
+		return
+	}
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
+	}
+	if *patch {
+		if *verbose {
+			err = syscall.Exec("./patch_verbose",[]string{},nil)
+		} else {
+			err = syscall.Exec("./patch", []string{}, nil)
+		}
+		if err != nil {
+			log.Errorf("Patching failed: %v", err)
+		}
 	}
 
 	log.Info("Loading config file")
@@ -185,6 +238,8 @@ func main() {
 	// We're running!
 	log.Info("RamenBot is running.")
 
+	//
+	go handlePatchUpdate()
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)

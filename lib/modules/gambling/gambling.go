@@ -13,9 +13,41 @@ import (
 	"text/tabwriter"
 )
 
-const ConfigName = "gambling"
+const (
+	ConfigName = "gambling"
+	helpString = "**!!$** : This module allows the user to use a number of gambling events and functions.\n"
+	gamblingHelpString = `**$**
+This module allows the user to use a number of gambling events and functions.
 
-const helpString = "**!!$** : This module allows the user to use a number of gambling events and functions.\n"
+**usage:** !!$ *function* *args...*
+
+**functions:**
+    *roll:* This function allows the user to roll a die and prints the result.
+	*betroll:* This function allows the user to start a betroll event.
+	*bid:* This function allows the user to bid on an in-progress event.
+	*bits:* This function allows the user to display the bit values of users in the server.
+	*give:* This function allows the user to give their bits to another user.
+		**permissions required:** bits-admin
+	*award:* This function allows the user to create bits out of thin air and give them to another user.
+		**permissions required:** bits-admin
+	*take:* This function allows the user to take bits from another user.
+		**permissions required:** bits-admin
+
+For more info on using any of these functions, type **!!$ [function name] help**`
+
+	rollHelpString = `**ROLL**
+**usage:** !!$ roll *<dietype>*
+	This command initiates a dice roll.
+	The second optional argument specifies a type of die for the roll.
+**Die Types**
+	**d6 (default):** 6-sided die.
+	**d4:** 4-sided die.
+	**d8:** 8-sided die.
+	**d10:** 10-sided die.
+	**d12:** 12-sided die.
+	**d20:** 20-sided die.
+	**other:** random integer generator between 1 and input.`
+)
 
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -63,25 +95,13 @@ func handleDbStart() error {
 }
 
 func handleRootCommand(cmd *modulebase.ModuleCommand) (string, error) {
-	return "", nil
+	return gamblingHelpString, nil
 }
 
 func rollDice(cmd *modulebase.ModuleCommand) (string, error) {
-	roll_help := `**roll usage:** roll *dietype (optional)*
-    This command initiates a dice roll.
-    The second optional argument specifies a type of die for the roll.
-    **Die Types**
-    **d6 (default):** 6-sided die.
-    **d4:** 4-sided die.
-    **d8:** 8-sided die.
-    **d10:** 10-sided die.
-    **d12:** 12-sided die.
-    **d20:** 20-sided die.
-    **other:** random integer generator between 1 and input.`
 	draw := false
 	r := 0
 	maxnum := 0
-
 	w := &tabwriter.Writer{}
 	buf := &bytes.Buffer{}
 	w.Init(buf, 0, 4, 0, ' ', 0)
@@ -89,7 +109,7 @@ func rollDice(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debugf("Args was: %v", cmd.Args)
 	if len(cmd.Args) > 0 {
 		if (len(cmd.Args) > 1) || (cmd.Args[0] == "help") {
-			return roll_help, nil
+			return rollHelpString, nil
 		}
 		if strings.HasPrefix(cmd.Args[0], "d") {
 			maxnum, err = strconv.Atoi(strings.Replace(cmd.Args[0], "d", "", 1))

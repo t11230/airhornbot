@@ -1,0 +1,45 @@
+#!/bin/sh
+./bot & pid=$!
+trap "kill -15 $pid; exit" SIGINT SIGTERM
+while true; do
+    python get_travis_status.py > travis_status.xml
+    TRAVIS_SUCCESS=$(grep 'lastBuildStatus="Success"' travis_status.xml)
+    LOCAL=$(git rev-parse @)
+    REMOTE=$(git ls-remote git://github.com/t11230/ramenbot.git master |  cut -f1)
+    BASE=$(git merge-base @ @{u})
+    AUTHDIFF=$(git diff master cmd/authserver/auth.go)
+    PATCHDIFF=$(git diff master patch_verbose)
+    MAKEDIFF=$(git diff master Makefile)
+    BOTDIFF=$(git diff master cmd/bot/*.go)
+    LIBDIFF=$(git diff master lib/)
+    if [ $LOCAL = $REMOTE ]; then
+        sleep 300
+    elif [ $LOCAL = $BASE ]; then
+        if TRAVIS_SUCCESS; then
+            git pull
+            if [ -n "$MAKEDIFF" ]; then
+                make clean
+                make
+                ./bot & newpid=$!
+                kill -15 $pid
+                pid = newpid
+                break
+            fi
+            if [ -n "$BOTDIFF" ] | [ -n "$LIBDIFF" ]; then
+                make -B bot
+                ./bot & newpid=$!
+                kill -15 $pid
+                pid = newpid
+            fi
+            if [ -n "$AUTHDIFF" ]; then
+                make auth
+                ##restart server, kick bot, re-add bot
+            fi
+            if [ -n "$PATCHDIFF" ]; then
+                kill -SIGUSR2 $pid
+                exit
+            fi
+        fi
+        sleep 300
+    fi
+done

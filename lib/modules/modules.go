@@ -127,7 +127,6 @@ func HandleCommand(cmd *Command) {
 	if !ok {
 		log.Debugf("Invalid command %v", cmd.Command)
 		return
-		// log.Errorf("Error processing command %v: %v", cmd.Command, err)
 	}
 
 	moduleCmd := &modulebase.ModuleCommand{

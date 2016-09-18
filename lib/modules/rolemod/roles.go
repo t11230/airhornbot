@@ -15,6 +15,7 @@ var (
     blue string
     purple string
     disco string
+    is_ever bool
 )
 
 // Module name used in the config file
@@ -24,18 +25,26 @@ const (
 
     helpString = "**!!role** : This module allows the user to choose from a set of roles.\n"
 
-	roleHelpString = `
-    **role usage:** !!role *function* *args*
-    **overview:** This module allows the user to choose from a set of roles if they have the right permissions.
-    **functions:**
-        *color:* This function allows the user to change the color of their name.**`
+	roleHelpString = `**ROLE**
+This module allows the user to choose from a set of roles.
 
-    colorHelpString = `
-    **color usage:**!! role color *colorname*
-        Changes *user's* name color to *colorname*.
-    **color names:** red, orange, yellow, green, blue, purple, disco, clear
-        Use color *clear* to reset to black.
-        Use color *disco* for disco party.`
+**usage:** !!role *function* *args...*
+
+**permissions required:** none
+
+**functions:**
+    *color:* This function allows the user to change the color of their name.
+
+For more info on using any of these functions, type **!!role [function name] help**`
+
+    colorHelpString = `**COLOR**
+
+**usage:** !!role color *colorname*
+    Changes *user's* name color to *colorname*.
+
+**color names:** red, orange, yellow, green, blue, purple, disco, clear
+    Use color *clear* to reset to black.
+    Use color *disco* for disco party.`
 
     perms = 0x00000001 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00004000 | 0x00008000 | 0x00010000 | 0x00020000 | 0x00100000 | 0x00200000
 )
@@ -208,7 +217,7 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
 func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
     createColors(cmd.Session, cmd.Guild, cmd.Message)
     user := cmd.Message.Author
-    if len(cmd.Args) != 1 {
+    if len(cmd.Args) < 1 || len(cmd.Args) > 2{
         return colorHelpString, nil
     }
     log.Info("Case: "+cmd.Args[0])
@@ -216,11 +225,22 @@ func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
     if color == "help" {
         return colorHelpString, nil
     }
-    changeColor(cmd.Session, cmd.Guild, user, color)
+    if len(cmd.Args) == 2 {
+        time := cmd.Args[1]
+        ever:=0
+        if time == "4ever" {
+            ever = 4
+        } else if time == "5ever" {
+            ever = 5
+        }
+        changeColor(cmd.Session, cmd.Guild, user, color, ever)
+        return "", nil
+    }
+    changeColor(cmd.Session, cmd.Guild, user, color, 0)
     return "", nil
 }
 
-func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User, c string) string {
+func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User, c string, ever int) string {
     var err error
     var color string
     colors := []string{red, orange, yellow, green, blue, purple, disco}
@@ -240,17 +260,25 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.U
         color = purple
     case "disco":
         color = disco
-        go discoParty(s, guild, user)
-    case "clear":
-        for i, role := range(member.Roles){
-            if utils.Scontains(role, colors...) {
-                member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
-            }
+        if ever==4 {
+            go discoParty4ever(s, guild, user)
+        } else if ever==5 {
+            go discoParty5ever(s, guild, user)
+        } else{
+            go discoParty(s, guild, user)
         }
-        err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
-        if err != nil {
-            log.Error("Failed to update user's role")
-            return ""
+    case "clear":
+        if !is_ever {
+            for i, role := range(member.Roles){
+                if utils.Scontains(role, colors...) {
+                    member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+                }
+            }
+            err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
+            if err != nil {
+                log.Error("Failed to update user's role")
+                return ""
+            }
         }
         return ""
     }
@@ -284,6 +312,31 @@ func discoParty(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.Us
         s.GuildRoleEdit(guild.ID, disco, "disco", 0x3498db, false, perms)
         s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, perms)
     }
-    changeColor(s, guild, user, "clear")
+    changeColor(s, guild, user, "clear", 0)
+    return ""
+}
+
+func discoParty4ever(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User) string {
+    for {
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe74c3c, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe67e22, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xf1c40f, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x2ecc71, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x3498db, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, perms)
+    }
+    return ""
+}
+
+func discoParty5ever(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User) string {
+    is_ever = true
+    for {
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe74c3c, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe67e22, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0xf1c40f, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x2ecc71, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x3498db, false, perms)
+        s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, perms)
+    }
     return ""
 }

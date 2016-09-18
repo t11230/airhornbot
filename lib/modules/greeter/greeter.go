@@ -15,8 +15,43 @@ import (
 )
 
 // Module name used in the config file
-const ConfigName = "greeter"
-const helpString = "**!!greet** : This module allows the user to set text or voice greetings for joining a call.\n"
+const (
+	ConfigName = "greeter"
+	helpString = "**!!greet** : This module allows the user to set text or voice greetings for joining a call.\n"
+
+	greetHelpString = `**GREET**
+This module allows the user to set text or voice greetings for joining a call.
+
+**usage:** !!greet *function* *args...*
+
+**permissions required:** greet-control
+
+**functions:**
+    *pm:* This function allows the user to set a welcome private message to be sent by the bot.
+	*voice:* This function allows the user to set a welcome sound to be played by the bot.
+
+For more info on using any of these functions, type **!!greet [function name] help**`
+
+    pmHelpString = `**PM**
+
+**usage:** !!greet pm *action* *<message>*
+    Handles the welcome message sent by the bot to users who join the call.
+
+**action names:** enable, disable, set
+    **enable** turns on the greeting (ignores *<message>*)
+	**disable** turns off the greeting (ignores *<message>*)
+    **set** sets the greeting to *<message>*`
+
+	voiceHelpString = `**VOICE**
+
+**usage:** !!greet voice *action* *<collection>* *<sound>*
+    Handles the welcome sound played by the bot when users join the call.
+
+**action names:** enable, disable, set
+    **enable** turns on the greeting (ignores *<collection>* *<sound>*)
+	**disable** turns off the greeting (ignores *<collection>* *<sound>*)
+    **set** sets the greeting sound to *<collection>* *<sound>* (see !!s help)`
+)
 
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
@@ -64,12 +99,12 @@ func handleDbStart() error {
 
 func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called greet")
-	return "Greet help", nil
+	return greetHelpString, nil
 }
 
 func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
-	if len(cmd.Args) == 0 {
-		return "Missing arguments", nil
+	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
+		return pmHelpString, nil
 	}
 
 	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -80,7 +115,7 @@ func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
 	} else if cmd.Args[0] == "set" {
 		c.SetPMGreetMessage(cmd.Guild.ID, strings.Join(cmd.Args[1:], " "))
 	} else {
-		return "Invalid Args", nil
+		return pmHelpString, nil
 	}
 	return "Updated greet pm config", nil
 }
@@ -90,8 +125,8 @@ func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
 }
 
 func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
-	if len(cmd.Args) == 0 {
-		return "Missing arguments", nil
+	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
+		return voiceHelpString, nil
 	}
 
 	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -101,7 +136,7 @@ func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
 		c.VoiceGreetEnable(cmd.Guild.ID, false)
 	} else if cmd.Args[0] == "set" {
 		if len(cmd.Args) != 3 {
-			return "Invalid Args", nil
+			return voiceHelpString, nil
 		}
 		if sound.FindSoundByName(cmd.Args[1], cmd.Args[2]) == nil {
 			errString := fmt.Sprintf("Invalid Sound effect: %v", cmd.Args[1:3])
@@ -109,7 +144,7 @@ func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
 		}
 		c.SetVoiceGreetSound(cmd.Guild.ID, strings.Join(cmd.Args[1:3], " "))
 	} else {
-		return "Invalid Args", nil
+		return voiceHelpString, nil
 	}
 	return "Updated greet voice config", nil
 }

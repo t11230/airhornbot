@@ -12,9 +12,39 @@ import (
 	"text/tabwriter"
 )
 
-const ConfigName = "admin"
+const (
+	ConfigName = "admin"
+	helpString = "**!!adm** : This module allows the user to control permissions for using other modules.\n"
 
-const helpString = "**!!adm** : This module allows the user to control permissions for using other modules.\n"
+	admHelpString = `**ADM**
+This module allows the user to control permissions for using other modules.
+
+**usage:** !!adm *function* *args...*
+
+**discord permissions required:** Manage Roles
+
+**functions:**
+	*showperms:* This function displays the names of all possible permissions.
+    *addperm:* This function allows the user to add a set of permissions to a user.
+	*delperm:* This function allows the user to remove a set of permissions from a user.
+
+For more info on using any of these functions, type **!!adm [function name] help**`
+
+	showHelpString = `**SHOWPERMS**
+
+**usage:** !!adm showperms
+	Displays the names of all possible permissions.`
+
+	addHelpString = `**ADDPERM**
+
+**usage:** !!adm addperm *permissions* *username*
+	Adds the permissions specified by *permisions* to the user specified by *username*`
+
+	delHelpString = `**DELPERM**
+
+**usage:** !!adm delperm *permissions* *username*
+	Removes the permissions specified by *permisions* from the user specified by *username*`
+)
 
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -30,6 +60,7 @@ var commandTree = []modulebase.ModuleCommandTree{
 				Function: handleShowPerms,
 			},
 		},
+		Function: handleAdmHelp,
 	},
 }
 
@@ -42,6 +73,10 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 	}, nil
 }
 
+func handleAdmHelp(cmd *modulebase.ModuleCommand) (string, error) {
+	return admHelpString, nil
+}
+
 func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Handling addperm command")
 
@@ -50,7 +85,7 @@ func handleAddPerm(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) < 2 {
-		return "Invalid or missing arguments", nil
+		return addHelpString, nil
 	}
 
 	h := perms.GetPermsHandle(cmd.Guild.ID)
@@ -88,7 +123,7 @@ func handleDelPerm(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) < 2 {
-		return "Invalid or missing arguments", nil
+		return delHelpString, nil
 	}
 
 	h := perms.GetPermsHandle(cmd.Guild.ID)
@@ -125,7 +160,7 @@ func handleShowPerms(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	if len(cmd.Args) != 0 {
-		return "This command takes no arguments", nil
+		return showHelpString, nil
 	}
 
 	permList, err := perms.PermsList()

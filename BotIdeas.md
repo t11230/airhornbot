@@ -24,8 +24,5 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 - CAH Spectator
     - message bot the link and password to the game, then bot sends it to everyone when they join the call.
 - Pokemon Showdown Spectator
-- Pokemon Go Spectator
 - Gameplay Tracking (improve)
 - Improve Markov Chain
-- Check Production Git Branch and self update
-- If message contains "Keikaku" print "Translator's Note: Keikaku means plan"

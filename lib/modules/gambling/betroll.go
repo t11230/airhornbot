@@ -17,6 +17,24 @@ import (
 const (
 	RoundTime = 30
 	MinAnte   = 5
+
+	betrollHelpString = `**BETROLL**
+**usage:** !!$ betroll *ante* *<dietype>*
+    This command initiates a bet on a dice roll. The second argument is the ante that all participants must pay into the pool.
+    The third optional argument specifies a type of die for the roll.
+**Die Types**
+    **d6 (default):** 6-sided die.
+    **d4:** 4-sided die.
+    **d8:** 8-sided die.
+    **d10:** 10-sided die.
+    **d12:** 12-sided die.
+    **d20:** 20-sided die.
+    **other:** random integer generator between 1 and input.`
+
+	bidHelpString = `**BID**
+**usage:** !!$ bid *result*
+    This command initiates bids on an in progress betroll. The second argument is the result that the user is bidding on.
+    The number of bits placed on the bid is determined by the ante of the betroll.`
 )
 
 func betRoll(cmd *modulebase.ModuleCommand) (string, error) {
@@ -26,18 +44,6 @@ func betRoll(cmd *modulebase.ModuleCommand) (string, error) {
 	buf := &bytes.Buffer{}
 	w.Init(buf, 0, 4, 0, ' ', 0)
 
-	betroll_help := `**betroll usage:** betroll *ante* *dietype (optional)*
-    This command initiates a bet on a dice roll. The second argument is the ante that all participants must pay into the pool.
-    The third optional argument specifies a type of die for the roll.
-    **Die Types**
-    **d6 (default):** 6-sided die.
-    **d4:** 4-sided die.
-    **d8:** 8-sided die.
-    **d10:** 10-sided die.
-    **d12:** 12-sided die.
-    **d20:** 20-sided die.
-    **other:** random integer generator between 1 and input.`
-
 	event := getActiveBetRoll(cmd.Guild.ID)
 	if event != nil {
 		fmt.Fprintf(w, "**ERROR:** BetRoll Event already in progress.")
@@ -45,8 +51,8 @@ func betRoll(cmd *modulebase.ModuleCommand) (string, error) {
 		return buf.String(), nil
 	}
 
-	if (len(cmd.Args) < 1) || (len(cmd.Args) > 2) {
-		fmt.Fprintf(w, betroll_help)
+	if (len(cmd.Args) < 1) || (len(cmd.Args) > 2) || cmd.Args[0]=="help" {
+		fmt.Fprintf(w, betrollHelpString)
 		w.Flush()
 		return buf.String(), nil
 	}
@@ -99,19 +105,19 @@ func bid(cmd *modulebase.ModuleCommand) (string, error) {
 	db_error_msg := "**ERROR:** Database error."
 	success_msg := "*Bet Successfully Placed* :ok_hand:"
 	ante_error_msg := "Not enough bits for ante :slight_frown:"
-	bid_help := `**bid usage:** bid *number*
-    This command bids on a bet roll. The second argument is the result that you are bidding on.`
+
+	if len(cmd.Args) != 1 || cmd.Args[0]=="help"{
+		fmt.Fprintf(w, bidHelpString)
+		w.Flush()
+		return buf.String(), nil
+	}
 
 	if event == nil {
 		fmt.Fprintf(w, event_error_msg)
 		w.Flush()
 		return buf.String(), nil
 	}
-	if len(cmd.Args) != 1 {
-		fmt.Fprintf(w, bid_help)
-		w.Flush()
-		return buf.String(), nil
-	}
+
 	for _, b := range event.Players {
 		if b.UserID == user.ID {
 			fmt.Fprintf(w, "You can only bid once!")
@@ -201,6 +207,10 @@ func doBetRollRound(cmd *modulebase.ModuleCommand, maxnum int, ante int, roundti
 	}
 	if len(winnerIDs) > 0 {
 		payout = pool / len(winnerIDs)
+	} else {
+		bot, _ := cmd.Session.User("@me")
+		winnerIDs = append(winnerIDs, bot.ID)
+		payout = pool
 	}
 	payout_result = payout_result + strconv.Itoa(payout) + " bits"
 	for _, winner := range winnerIDs {

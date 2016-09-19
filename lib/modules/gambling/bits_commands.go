@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
-	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
 	"strconv"
 	"strings"
@@ -116,11 +115,6 @@ func giveBits(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "bits-admin") {
-		return "Insufficient permissions", nil
-	}
-
 	if len(cmd.Args) < 2 {
 		return awardBitsHelpString, nil
 	}
@@ -150,11 +144,6 @@ func awardBits(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func takeBits(cmd *modulebase.ModuleCommand) (string, error) {
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "bits-admin") {
-		return "Insufficient permissions", nil
-	}
-
 	if len(cmd.Args) < 2 {
 		return takeBitsHelpString, nil
 	}

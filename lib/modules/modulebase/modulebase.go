@@ -2,6 +2,7 @@ package modulebase
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/t11230/ramenbot/lib/perms"
 )
 
 type ModuleConfig struct {
@@ -16,7 +17,7 @@ type ModuleDBStartFunc func() error
 type ModuleSetupInfo struct {
 	Events   *[]interface{}
 	Commands *[]ModuleCommandTree
-	Help	 string
+	Help     string
 	DBStart  ModuleDBStartFunc
 }
 
@@ -35,6 +36,7 @@ type ModuleCommandTree struct {
 	SubKeys       SK
 	Function      ModuleCommandFunc
 	ErrorFunction ModuleCommandErrorFunc
+	Permissions   []perms.Perm
 }
 
 type SK map[string]CN
@@ -43,6 +45,7 @@ type CN struct {
 	SubKeys       SK
 	Function      ModuleCommandFunc
 	ErrorFunction ModuleCommandErrorFunc
+	Permissions   []perms.Perm
 }
 
 var GetModuleHelp ModuleHelpFunc

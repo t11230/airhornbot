@@ -7,12 +7,29 @@ import (
 	"image/draw"
 )
 
+const (
+	cardWidth      = 75
+	cardXSpacing   = 2
+	cardYSpacing   = 5
+	cardSlotWidth  = cardWidth + cardXSpacing
+	cardSlotHeight = 105
+	cardsPerRow    = 5
+)
+
+// GenerateImage converts an array of Cards into an Image
 func GenerateImage(cards []Card) (image.Image, error) {
 	log.Debug("Generating image")
 
 	nCards := len(cards)
 
-	resultImg := image.NewRGBA(image.Rect(0, 0, 80*nCards+20*2, 104+10*2))
+	nCardsInFirstRow := nCards
+	if nCardsInFirstRow > 5 {
+		nCardsInFirstRow = 5
+	}
+
+	resultImg := image.NewRGBA(image.Rect(0, 0,
+		cardSlotWidth*nCardsInFirstRow+cardXSpacing*2,
+		cardSlotHeight*(((nCards-1)/cardsPerRow)+1)+cardYSpacing*2))
 
 	log.Debugf("Image Size: %v", resultImg.Bounds())
 
@@ -23,16 +40,11 @@ func GenerateImage(cards []Card) (image.Image, error) {
 			return nil, err
 		}
 
-		rImg := resize.Thumbnail(75, uint(img.Bounds().Dy()), img, resize.Bilinear)
+		rImg := resize.Thumbnail(cardWidth, uint(img.Bounds().Dy()), img, resize.Bilinear)
 
-		pt := image.Point{10 + 80*index, 10}
-
-		log.Debugf("Drawing at %v", pt)
-
+		pt := image.Point{cardSlotWidth*(index%cardsPerRow) + cardXSpacing,
+			cardSlotHeight*(index/cardsPerRow) + cardYSpacing}
 		rect := image.Rectangle{pt, pt.Add(rImg.Bounds().Size())}
-
-		log.Debugf("Rect is %v", rect)
-
 		draw.Draw(resultImg, rect, rImg, image.Point{0, 0}, draw.Src)
 	}
 

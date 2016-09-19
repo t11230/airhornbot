@@ -136,16 +136,8 @@ func handleDrawCommand(cmd *modulebase.ModuleCommand) (string, error) {
 			return
 		}
 
-		log.Debugf("Image: %v", &img)
-
-		log.Debug("Encoding")
-
 		w := &bytes.Buffer{}
-
 		png.Encode(w, img)
-
-		log.Debug("Sending")
-
 		cmd.Session.ChannelFileSend(cmd.Message.ChannelID, "png", w)
 	}()
 

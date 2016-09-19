@@ -54,6 +54,7 @@ This function allows the user to set when a user must join the call to receive t
 **usage:** !!vb set time *weekday* *starttime* *endtime*
 	Sets the time range of the voice bonus from the UTC time *starttime* to the UTC time *endtime* every week on *weekday*`
 )
+
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -62,17 +63,22 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"set": modulebase.CN{
 				SubKeys: modulebase.SK{
 					"amount": modulebase.CN{
-						Function: handleSetAmount,
+						Function:    handleSetAmount,
+						Permissions: []perms.Perm{vbControlPerm},
 					},
 					"time": modulebase.CN{
-						Function: handleSetTime,
+						Function:    handleSetTime,
+						Permissions: []perms.Perm{vbControlPerm},
 					},
 				},
 			},
 		},
-		Function: handleSet,
+		Function:    handleSet,
+		Permissions: []perms.Perm{vbControlPerm},
 	},
 }
+
+var vbControlPerm = perms.Perm{"voicebonus-control"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
@@ -89,20 +95,18 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleDbStart() error {
-	perms.CreatePerm("voicebonus-control")
+	err := perms.CreatePerm(vbControlPerm.Name)
+	if err != nil {
+		log.Errorf("Error creating perm: %v", err)
+		return err
+	}
 	return nil
 }
 
 func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
-
 	if len(cmd.Args) == 0 || cmd.Args[0]=="help" {
 		return vbHelpString, nil
-	}
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -128,12 +132,6 @@ func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetAmount")
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
-	}
-
 	if len(cmd.Args) == 0 {
 		return amountHelpString, nil
 	}
@@ -155,11 +153,6 @@ func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetTime")
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
-	}
 
 	if len(cmd.Args) != 3 || cmd.Args[0]=="help" {
 		return timeHelpString, nil

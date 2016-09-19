@@ -22,7 +22,6 @@ type userPermsCollection struct {
 
 type PermsHandle struct {
 	GuildID       string
-	Namespace     string
 	UserPermsColl userPermsCollection
 }
 
@@ -37,7 +36,9 @@ type UserPerm struct {
 
 func CreatePerm(perm string) error {
 	permsColl := permCollection{ramendb.GetCollection("permsdb", permsCollName)}
-	c, err := permsColl.Find(&Perm{Name: perm}).Count()
+	permQuery := permsColl.Find(&Perm{Name: perm})
+
+	c, err := permQuery.Count()
 	if err != nil {
 		log.Errorf("Error checking for perm: %v", err)
 		return err
@@ -47,7 +48,9 @@ func CreatePerm(perm string) error {
 		return nil
 	}
 
-	err = permsColl.Insert(&Perm{Name: perm})
+	result := &Perm{Name: perm}
+
+	err = permsColl.Insert(result)
 	if err != nil {
 		log.Error("Error creating perm: %v", err)
 		return err
@@ -55,15 +58,26 @@ func CreatePerm(perm string) error {
 	return nil
 }
 
-func PermExists(perm string) (bool, error) {
+func PermExists(perm string) (*Perm, error) {
 	permsColl := permCollection{ramendb.GetCollection("permsdb", permsCollName)}
-	c, err := permsColl.Find(&Perm{Name: perm}).Count()
+	permQuery := permsColl.Find(&Perm{Name: perm})
+	c, err := permQuery.Count()
 	if err != nil {
 		log.Errorf("Error checking for perm: %v", err)
-		return false, err
+		return nil, err
 	}
 
-	return (c > 0), nil
+	result := &Perm{}
+
+	if c > 0 {
+		err = permQuery.One(result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
+	return nil, nil
 }
 
 func PermsList() ([]Perm, error) {
@@ -79,18 +93,23 @@ func PermsList() ([]Perm, error) {
 	return result, nil
 }
 
-func GetPermsHandle(guildId string, namespace string) *PermsHandle {
+func GetPermsHandle(guildId string) *PermsHandle {
 	userPermsCollName := "userperms"
 
 	return &PermsHandle{
 		GuildID:       guildId,
-		Namespace:     namespace,
 		UserPermsColl: userPermsCollection{ramendb.GetCollection(guildId, userPermsCollName)},
 	}
 }
 
-func (h *PermsHandle) AddPerm(userId string, perm string) error {
+func (h *PermsHandle) AddPerm(userId string, perm *Perm) error {
 	log.Debugf("Adding Perm %v to %v", perm, userId)
+
+	if perm == nil {
+		err := errors.New("Perm was nil")
+		log.Error(err)
+		return err
+	}
 
 	hasPerm := h.CheckPerm(userId, perm)
 	if hasPerm {
@@ -102,7 +121,7 @@ func (h *PermsHandle) AddPerm(userId string, perm string) error {
 
 	err := h.UserPermsColl.Find(user).One(result)
 	if err == mgo.ErrNotFound {
-		user.Perms = []Perm{Perm{Name: perm}}
+		user.Perms = []Perm{*perm}
 		h.UserPermsColl.Insert(user)
 		return nil
 	} else if err != nil {
@@ -110,7 +129,7 @@ func (h *PermsHandle) AddPerm(userId string, perm string) error {
 		return err
 	}
 
-	result.Perms = append(result.Perms, Perm{Name: perm})
+	result.Perms = append(result.Perms, *perm)
 
 	err = h.UserPermsColl.Update(user, bson.M{"$set": result})
 	if err != nil {
@@ -119,8 +138,14 @@ func (h *PermsHandle) AddPerm(userId string, perm string) error {
 	return nil
 }
 
-func (h *PermsHandle) RemovePerm(userId string, perm string) error {
+func (h *PermsHandle) RemovePerm(userId string, perm *Perm) error {
 	log.Debugf("Removing Perm %v from %v", perm, userId)
+
+	if perm == nil {
+		err := errors.New("Perm was nil")
+		log.Error(err)
+		return err
+	}
 
 	hasPerm := h.CheckPerm(userId, perm)
 	if !hasPerm {
@@ -136,7 +161,7 @@ func (h *PermsHandle) RemovePerm(userId string, perm string) error {
 		return err
 	}
 
-	hasPerm, permIndex := permsContains(result.Perms, Perm{Name: perm})
+	hasPerm, permIndex := permsContains(result.Perms, perm)
 
 	if !hasPerm {
 		err = errors.New("User does not have perm")
@@ -164,7 +189,7 @@ func (h *PermsHandle) RemovePerm(userId string, perm string) error {
 	return nil
 }
 
-func (h *PermsHandle) CheckPerm(userId string, perm string) bool {
+func (h *PermsHandle) CheckPerm(userId string, perm *Perm) bool {
 	log.Debugf("Checking perm %v for %v", perm, userId)
 
 	result := &UserPerm{}
@@ -177,11 +202,14 @@ func (h *PermsHandle) CheckPerm(userId string, perm string) bool {
 		return false
 	}
 
-	hasPerm, _ := permsContains(result.Perms, Perm{Name: perm})
+	hasPerm, _ := permsContains(result.Perms, perm)
 	return hasPerm
 }
 
-func permsContains(perms []Perm, find Perm) (bool, int) {
+func permsContains(perms []Perm, find *Perm) (bool, int) {
+	if find == nil {
+		return false, -1
+	}
 	for i, item := range perms {
 		if item.Name == find.Name {
 			return true, i

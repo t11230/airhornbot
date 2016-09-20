@@ -52,20 +52,26 @@ For more info on using any of these functions, type **!!greet [function name] he
 	**disable** turns off the greeting (ignores *<collection>* *<sound>*)
     **set** sets the greeting sound to *<collection>* *<sound>* (see !!s help)`
 )
+
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
 		RootCommand: "greet",
 		SubKeys: modulebase.SK{
 			"pm": modulebase.CN{
-				Function:      handleGreetPm,
-				ErrorFunction: handleGreetPmError,
+				Function:    handleGreetPm,
+				Permissions: []perms.Perm{greetControlPerm},
 			},
-			"voice": modulebase.CN{Function: handleGreetVoice},
+			"voice": modulebase.CN{
+				Function:    handleGreetVoice,
+				Permissions: []perms.Perm{greetControlPerm},
+			},
 		},
 		Function: handleGreet,
 	},
 }
+
+var greetControlPerm = perms.Perm{"greet-control"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
@@ -83,7 +89,11 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleDbStart() error {
-	perms.CreatePerm("greet-control")
+	err := perms.CreatePerm(greetControlPerm.Name)
+	if err != nil {
+		log.Errorf("Error creating perm: %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -93,11 +103,6 @@ func handleGreet(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func handleGreetPm(cmd *modulebase.ModuleCommand) (string, error) {
-	permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permHandle.CheckPerm(cmd.Message.Author.ID, "greet-control") {
-		return "**Insufficient permissions:** This function requires *greet-control* permissions", nil
-	}
-
 	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
 		return pmHelpString, nil
 	}
@@ -120,11 +125,6 @@ func handleGreetPmError(cmd *modulebase.ModuleCommand, e error) {
 }
 
 func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
-	permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permHandle.CheckPerm(cmd.Message.Author.ID, "greet-control") {
-		return "**Insufficient permissions:** This function requires *greet-control* permissions", nil
-	}
-
 	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
 		return voiceHelpString, nil
 	}

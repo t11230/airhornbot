@@ -17,7 +17,6 @@ import (
 )
 
 const (
-
 	ConfigName = "voicebonus"
 
 	joinMessage = `
@@ -54,6 +53,7 @@ This function allows the user to set when a user must join the call to receive t
 **usage:** !!vb set time *weekday* *starttime* *endtime*
 	Sets the time range of the voice bonus from the UTC time *starttime* to the UTC time *endtime* every week on *weekday*`
 )
+
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
 	{
@@ -62,17 +62,22 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"set": modulebase.CN{
 				SubKeys: modulebase.SK{
 					"amount": modulebase.CN{
-						Function: handleSetAmount,
+						Function:    handleSetAmount,
+						Permissions: []perms.Perm{vbControlPerm},
 					},
 					"time": modulebase.CN{
-						Function: handleSetTime,
+						Function:    handleSetTime,
+						Permissions: []perms.Perm{vbControlPerm},
 					},
 				},
 			},
 		},
-		Function: handleSet,
+		Function:    handleSet,
+		Permissions: []perms.Perm{vbControlPerm},
 	},
 }
+
+var vbControlPerm = perms.Perm{"voicebonus-control"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
@@ -89,20 +94,18 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleDbStart() error {
-	perms.CreatePerm("voicebonus-control")
+	err := perms.CreatePerm(vbControlPerm.Name)
+	if err != nil {
+		log.Errorf("Error creating perm: %v", err)
+		return err
+	}
 	return nil
 }
 
 func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSet")
-
-	if len(cmd.Args) == 0 || cmd.Args[0]=="help" {
+	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
 		return vbHelpString, nil
-	}
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
 	}
 
 	c := voicebonusCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName)}
@@ -128,12 +131,6 @@ func handleSet(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetAmount")
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
-	}
-
 	if len(cmd.Args) == 0 {
 		return amountHelpString, nil
 	}
@@ -155,13 +152,7 @@ func handleSetAmount(cmd *modulebase.ModuleCommand) (string, error) {
 
 func handleSetTime(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debug("Called handleSetTime")
-
-	permsHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
-	if !permsHandle.CheckPerm(cmd.Message.Author.ID, "voicebonus-control") {
-		return "Insufficient permissions", nil
-	}
-
-	if len(cmd.Args) != 3 || cmd.Args[0]=="help" {
+	if len(cmd.Args) != 3 || cmd.Args[0] == "help" {
 		return timeHelpString, nil
 	}
 
@@ -248,31 +239,45 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 	weekday := currentTime.Weekday()
 	nextDay := day + utils.GetDaysTillWeekday(int(weekday), span.Weekday)
 	startDate := time.Date(year, month, nextDay, span.Hour, span.Minute, 0, 0, time.UTC)
+	previousDate := time.Date(year, month, nextDay-7, span.Hour, span.Minute, 0, 0, time.UTC)
 
 	log.Debugf("Start Date is: %v", startDate)
+	log.Debugf("Previous Date is: %v", previousDate)
 
 	lastJoinTime := time.Unix(getUserLastJoin(v.GuildID, v.UserID), 0)
 
 	log.Debugf("Last join date: %v, now: %v", lastJoinTime, currentTime)
 
-	log.Debugf("%v %v %v", currentTime.After(startDate), time.Since(startDate).Hours() < float64(span.Duration), lastJoinTime.Before(startDate))
+	if currentTime.Before(startDate) {
+		// Check for previous week parts. Needed if timespan crosses UTC midnight
+		if time.Since(previousDate).Hours() > float64(span.Duration) ||
+			lastJoinTime.After(previousDate) {
 
-	if currentTime.After(startDate) &&
-		time.Since(startDate).Hours() < float64(span.Duration) &&
-		lastJoinTime.Before(startDate) {
-		log.Debug("Giving bits for join")
+			log.Debugf("Previous time status: %v %v",
+				time.Since(previousDate).Hours() > float64(span.Duration),
+				lastJoinTime.After(previousDate))
+			return
+		}
+	} else if time.Since(startDate).Hours() > float64(span.Duration) ||
+		lastJoinTime.After(startDate) {
 
-		bits.AddBits(s, v.GuildID, v.UserID, c.Amount(), "Voice join bonus", true)
-
-		username := utils.GetPreferredName(guild, v.UserID)
-		message := fmt.Sprintf(joinMessage, username, c.Amount(),
-			bits.GetBits(v.GuildID, v.UserID))
-
-		channel, _ := s.UserChannelCreate(v.UserID)
-		s.ChannelMessageSend(channel.ID, message)
-
-		updateUserLastJoin(v.GuildID, v.UserID, currentTime.Unix())
+		log.Debugf("Current time status: %v %v",
+			time.Since(startDate).Hours() > float64(span.Duration),
+			lastJoinTime.After(startDate))
+		return
 	}
+
+	log.Debug("Giving bits for join")
+	bits.AddBits(s, v.GuildID, v.UserID, c.Amount(), "Voice join bonus", true)
+
+	username := utils.GetPreferredName(guild, v.UserID)
+	message := fmt.Sprintf(joinMessage, username, c.Amount(),
+		bits.GetBits(v.GuildID, v.UserID))
+
+	channel, _ := s.UserChannelCreate(v.UserID)
+	s.ChannelMessageSend(channel.ID, message)
+
+	updateUserLastJoin(v.GuildID, v.UserID, currentTime.Unix())
 }
 
 type voicebonusLastJoin struct {

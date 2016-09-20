@@ -8,10 +8,11 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/gambling"
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/help"
-	"github.com/t11230/ramenbot/lib/modules/rolemod"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/modules/rolemod"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
 	"github.com/t11230/ramenbot/lib/modules/voicebonus"
+	"github.com/t11230/ramenbot/lib/perms"
 )
 
 var (
@@ -88,10 +89,9 @@ func LoadModules(configs []modulebase.ModuleConfig) error {
 	return nil
 }
 
-func getModuleHelpString() (map[string]string, error){
+func getModuleHelpString() (map[string]string, error) {
 	return moduleHelpStrings, nil
 }
-
 
 func linkModuleCommandTree(tree *modulebase.ModuleCommandTree) modulebase.CN {
 	root := modulebase.CN{
@@ -99,6 +99,7 @@ func linkModuleCommandTree(tree *modulebase.ModuleCommandTree) modulebase.CN {
 		SubKeys:       modulebase.SK{},
 		Function:      tree.Function,
 		ErrorFunction: tree.ErrorFunction,
+		Permissions:   tree.Permissions,
 	}
 
 	for c := range tree.SubKeys {
@@ -120,13 +121,12 @@ func linkModuleCommandNode(parent *modulebase.CN) {
 }
 
 func HandleCommand(cmd *Command) {
+	log.Debug("In HandleCommand")
 	// Try to do a longest prefix match
-
 	node, ok := commandMap[cmd.Command]
 	if !ok {
 		log.Debugf("Invalid command %v", cmd.Command)
 		return
-		// log.Errorf("Error processing command %v: %v", cmd.Command, err)
 	}
 
 	moduleCmd := &modulebase.ModuleCommand{
@@ -135,15 +135,31 @@ func HandleCommand(cmd *Command) {
 		Message: cmd.Message,
 	}
 
-	log.Debug("CHECKING LEN ARGS")
 	// If there are no args, just call the root's function
 	if len(cmd.Args) <= 0 {
-		log.Debug("ROOT FUNCTION CALLED")
+		if node.Function == nil {
+			log.Error("Root function was nil")
+			return
+		}
+
+		log.Debugf("Root function called: %v", node)
+
+		if !checkPerms(node.Permissions, cmd.Guild.ID, cmd.Message.Author.ID) {
+			channel, _ := cmd.Session.UserChannelCreate(cmd.Message.Author.ID)
+			cmd.Session.ChannelMessageSend(channel.ID,
+				"You do not have the permissions to use this command")
+			log.Debug("Insufficient permissions")
+			return
+		}
+
 		message, err := node.Function(moduleCmd)
 		if err == nil {
 			cmd.Session.ChannelMessageSend(cmd.Message.ChannelID, message)
 			return
 		}
+
+		log.Errorf("Error in root function: %v", err)
+		return
 	}
 
 	args := cmd.Args
@@ -170,6 +186,15 @@ func HandleCommand(cmd *Command) {
 	var message string
 
 	if node.Function != nil {
+		if !checkPerms(node.Permissions, cmd.Guild.ID, cmd.Message.Author.ID) {
+			channel, _ := cmd.Session.UserChannelCreate(cmd.Message.Author.ID)
+			cmd.Session.ChannelMessageSend(channel.ID,
+				"You do not have the permissions to use this command")
+
+			log.Debug("Insufficient permissions")
+			return
+		}
+
 		moduleCmd.Args = args
 		message, err = node.Function(moduleCmd)
 	} else {
@@ -202,4 +227,17 @@ func DBHooks() error {
 		}
 	}
 	return nil
+}
+
+func checkPerms(permList []perms.Perm, guildId string, userId string) bool {
+	if permList != nil {
+		log.Debugf("Processing permission checks: %v", permList)
+		permsHandle := perms.GetPermsHandle(guildId)
+		for _, p := range permList {
+			if !permsHandle.CheckPerm(userId, &p) {
+				return false
+			}
+		}
+	}
+	return true
 }

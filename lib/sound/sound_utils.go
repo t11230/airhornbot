@@ -122,17 +122,18 @@ func (s *Sound) Load(c *SoundCollection) error {
 		}
 
 		if err != nil {
-			fmt.Println("error reading from dca file :", err)
+			fmt.Println("error reading frame length from dca file :", err)
 			return err
 		}
 
 		// read encoded pcm from dca file
+		log.Debug("Opuslen: %v", opuslen)
 		InBuf := make([]byte, opuslen)
 		err = binary.Read(file, binary.LittleEndian, &InBuf)
-
+		log.Debug("Successful Binary Read!")
 		// Should not be any end of file errors
 		if err != nil {
-			fmt.Println("error reading from dca file :", err)
+			fmt.Println("error reading encoded pcm from dca file :", err)
 			return err
 		}
 
@@ -310,4 +311,9 @@ func LoadSounds() {
 
 func GetCollections() []*SoundCollection {
 	return collections
+}
+
+func AddCollection(newCollection *SoundCollection) error {
+	collections = append(collections, newCollection)
+	return nil
 }

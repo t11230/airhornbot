@@ -228,7 +228,7 @@ func server() {
 		"port": port,
 	}).Info("Starting HTTP Server")
 
-	// If the requests log doesnt exist, make it
+	// If the requests log doesn't exist, make it
 	if _, err := os.Stat("requests.log"); os.IsNotExist(err) {
 		ioutil.WriteFile("requests.log", []byte{}, 0600)
 	}

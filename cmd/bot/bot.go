@@ -35,7 +35,7 @@ func init() {
 }
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
-	log.Info("Recieved READY payload")
+	log.Info("Received READY payload")
 	s.UpdateStatus(0, "Dank memes")
 
 	modules.InitEvents(s)
@@ -129,10 +129,18 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Args:    parts[1:],
 	}
 
+	attachments := m.Attachments
+	if len(attachments)>0 {
+		log.Debug("We have some attachments!")
+		if cmd.Command == "s" && cmd.Args[0] == "upload" {
+			cmd.Args = append(cmd.Args, attachments[0].URL)
+		}
+	}
+
 	modules.HandleCommand(&cmd)
 }
 
-// Handle updating of presences in the current session, because the API doesnt...
+// Handle updating of presences in the current session, because the API doesn't...
 func onPresenceUpdate(s *discordgo.Session, u *discordgo.PresenceUpdate) {
 	if s == nil {
 		return

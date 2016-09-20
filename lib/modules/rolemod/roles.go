@@ -58,6 +58,7 @@ var commandTree = []modulebase.ModuleCommandTree{
 		SubKeys: modulebase.SK{
 			"color": modulebase.CN{
 				Function:      handleChangeColor,
+                // Permissions:   []perms.Perm{roleControlPerm},
 			},
             "help": modulebase.CN{
 				Function:   handleRoleHelp,
@@ -65,6 +66,8 @@ var commandTree = []modulebase.ModuleCommandTree{
 		},
 	},
 }
+
+var roleControlPerm = perms.Perm{"role-control"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
@@ -76,8 +79,7 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
 }
 
 func handleDbStart() error {
-	perms.CreatePerm("role-control")
-    perms.CreatePerm("role-control?")
+	perms.CreatePerm(roleControlPerm.Name)
 	return nil
 }
 
@@ -225,7 +227,7 @@ func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Mes
 
 func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
     createColors(cmd.Session, cmd.Guild, cmd.Message)
-    permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
+    // permHandle := perms.GetPermsHandle(cmd.Guild.ID, ConfigName)
     user := cmd.Message.Author
     if len(cmd.Args) < 1 || len(cmd.Args) > 2{
         return colorHelpString, nil
@@ -240,18 +242,13 @@ func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
         ever:=0
         if time == "4ever" {
             ever = 4
-        } else if time == "5ever" {
-            ever = 5
         }
-        if !permHandle.CheckPerm(cmd.Message.Author.ID, "role-control?") {
-    		return "**Red, now is not the time to use that**", nil
-    	}
         changeColor(cmd.Session, cmd.Guild, user, color, ever)
         return "", nil
     }
-    if !permHandle.CheckPerm(cmd.Message.Author.ID, "role-control") {
-		return "**Insufficient permissions:** This function requires *role-control* permissions", nil
-	}
+    // if !permHandle.CheckPerm(cmd.Message.Author.ID, "role-control") {
+	// 	return "**Insufficient permissions:** This function requires *role-control* permissions", nil
+	// }
     changeColor(cmd.Session, cmd.Guild, user, color, 0)
     return "", nil
 }
@@ -278,25 +275,21 @@ func changeColor(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.U
         color = disco
         if ever==4 {
             go discoParty4ever(s, guild, user)
-        } else if ever==5 {
-            go discoParty5ever(s, guild, user)
         } else{
             go discoParty(s, guild, user)
         }
     case "clear":
-        if !is_5ever {
-            for i, role := range(member.Roles){
-                if utils.Scontains(role, colors...) {
-                    member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
-                }
+        for i, role := range(member.Roles){
+            if utils.Scontains(role, colors...) {
+                member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
             }
-            err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
-            if err != nil {
-                log.Error("Failed to update user's role")
-                return ""
-            }
-            is_4ever = false
         }
+        err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
+        if err != nil {
+            log.Error("Failed to update user's role")
+            return ""
+        }
+        is_4ever = false
         return ""
     }
     role, err := s.State.Role(guild.ID, color)
@@ -336,19 +329,6 @@ func discoParty(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.Us
 func discoParty4ever(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User) string {
     is_4ever = true
     for is_4ever{
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe74c3c, false, role_perms)
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0xe67e22, false, role_perms)
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0xf1c40f, false, role_perms)
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0x2ecc71, false, role_perms)
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0x3498db, false, role_perms)
-        s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, role_perms)
-    }
-    return ""
-}
-
-func discoParty5ever(s *discordgo.Session, guild *discordgo.Guild, user *discordgo.User) string {
-    is_5ever = true
-    for {
         s.GuildRoleEdit(guild.ID, disco, "disco", 0xe74c3c, false, role_perms)
         s.GuildRoleEdit(guild.ID, disco, "disco", 0xe67e22, false, role_perms)
         s.GuildRoleEdit(guild.ID, disco, "disco", 0xf1c40f, false, role_perms)

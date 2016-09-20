@@ -177,7 +177,9 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 	if member.User.Bot {
 		return
 	}
-
+	if v.VoiceState.SelfMute == true ||  v.VoiceState.SelfDeaf == true {
+		return
+	}
 	c := greeterCollection{ramendb.GetCollection(v.GuildID, ConfigName)}
 	voiceGreet, pmGreet := c.GreetEnabled(v.GuildID)
 

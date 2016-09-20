@@ -58,7 +58,7 @@ var commandTree = []modulebase.ModuleCommandTree{
 		SubKeys: modulebase.SK{
 			"color": modulebase.CN{
 				Function:      handleChangeColor,
-                // Permissions:   []perms.Perm{roleControlPerm},
+                Permissions:   []perms.Perm{roleControlPerm},
 			},
             "help": modulebase.CN{
 				Function:   handleRoleHelp,
@@ -246,9 +246,6 @@ func handleChangeColor(cmd *modulebase.ModuleCommand) (string, error) {
         changeColor(cmd.Session, cmd.Guild, user, color, ever)
         return "", nil
     }
-    // if !permHandle.CheckPerm(cmd.Message.Author.ID, "role-control") {
-	// 	return "**Insufficient permissions:** This function requires *role-control* permissions", nil
-	// }
     changeColor(cmd.Session, cmd.Guild, user, color, 0)
     return "", nil
 }

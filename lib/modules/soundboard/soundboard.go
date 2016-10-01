@@ -10,6 +10,7 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/sound"
 	"github.com/t11230/ramenbot/lib/utils"
+	"github.com/t11230/ramenbot/lib/bits"
 	"bufio"
 	"bytes"
 	"encoding/base64"
@@ -27,33 +28,18 @@ import (
 const (
 	ConfigName = "soundboard"
 	helpString = "**!!s** : This module allows the user to play sounds from a dank soundboard.\n"
-	sHelpString = `**S**
+	sHelpStringHead = `**S**
 This module allows the user to play sounds from a dank soundboard.
 
 **usage:** !!s *collection* *sound*
 	Plays the sound *sound* from the collection of sounds *collection*
 	Collections and the sounds they contain listed below:
-
-**airhorn:** default, reverb, spam, tripletap, fourtap, distant, echo, clownfull, clownshort, clownspam, highfartlong, highfartshort, midshort, truck
-**anotha:** one, one_echo, one_classic, dialup
-**johncena:** airhorn, echo, full, jc, nameis, spam, collect
-**ethan:** areyou_classic, areyou_condensed, areyou_crazy, areyou_ethan, classic, echo, high, slowandlow, cuts, beat, sodiepop, vape
-**stan:** herd, moo, x3
-**trump:** 10ft, wall, mess, bing, getitout, tractor, worstpres, china, mexico, special
-**music:** serbian, techno
-**meme:** headshot, wombo, triple, camera, gandalf, mad, ateam, bennyhill, tuba, donethis, leeroy, slam, nerd, kappa, digitalsports, csi, nogod, welcomebdc
-**birthday:** horn, horn3, sadhorn, weakhorn
-**owult:** dva_enemy, genji_enemy, genji_friendly, hanzo_enemy, hanzo_friendly, junkrat_enemy, junkrat_friendly, lucio_friendly, lucio_enemy, mccree_enemy, mccree_friendly, mei_friendly, mei_enemy, pharah_enemy, reaper_friendly, 76_enemy, symmetra_friendly, torbjorn_enemy, tracer_enemy, tracer_friendly, widow_enemy, widow_friendly, zarya_enemy, zarya_friendly, zenyatta_enemy, dva_;), anyong
-**dota:** waow, balance, rekt, stick, mana, disaster, liquid, history, smut, team, aegis
-**overwatch:** payload, whoa, woah, winky, turd, ryuugawagatekiwokurau, cyka, noon, somewhere, lift, russia
-**wc3:** work, awake
-**sp:** screw, authority
-**sv:** piss, fucks, shittalk, attractive, win
-**archer:** dangerzone, klog
-
+`
+	sHelpStringTail = `
 **EXAMPLE:** !!s airhorn default
 
 For the command to upload sounds to the soundboard, type **!!s upload help**
+
 `
 
 	uploadHelpString = `**UPLOAD**
@@ -61,6 +47,7 @@ This module allows the user to upload sounds to the bot's soundboard.
 
 **usage:** put !!s upload *collection* *soundname* in the comments of an audio file attachment
 Processes the attached soundfile and adds it to the soundboard as *soundname* in the collection *collection*
+**WARNING** Uploading a sound to the soundboard costs **300 bits**
 `
 
 	// The current version of the DCA format
@@ -114,106 +101,6 @@ var (
 	wg sync.WaitGroup
 )
 
-// Base metadata struct
-//
-// https://github.com/bwmarrin/dca/issues/5#issuecomment-189713886
-type MetadataStruct struct {
-    Dca             *DCAMetadata    `json:"dca"`
-    SongInfo        *SongMetadata   `json:"info"`
-    Origin          *OriginMetadata `json:"origin"`
-    Opus            *OpusMetadata   `json:"opus"`
-    Extra           *ExtraMetadata  `json:"extra"`
-}
-
-// DCA metadata struct
-//
-// Contains the DCA version.
-type DCAMetadata struct {
-    Version int8                `json:"version"`
-    Tool    *DCAToolMetadata    `json:"tool"`
-}
-
-// DCA tool metadata struct
-//
-// Contains the Git revisions, commit author etc.
-type DCAToolMetadata struct {
-    Name        string  `json:"name"`
-    Version     string  `json:"version"`
-    Url         string  `json:"url"`
-    Author      string  `json:"author"`
-}
-
-// Song Information metadata struct
-//
-// Contains information about the song that was encoded.
-type SongMetadata struct {
-    Title       string  `json:"title"`
-    Artist      string  `json:"artist"`
-    Album       string  `json:"album"`
-    Genre       string  `json:"genre"`
-    Comments    string  `json:"comments"`
-    Cover       *string `json:"cover"`
-}
-
-// Origin information metadata struct
-//
-// Contains information about where the song came from,
-// audio bitrate, channels and original encoding.
-type OriginMetadata struct {
-    Source      string  `json:"source"`
-    Bitrate     int     `json:"abr"`
-    Channels    int     `json:"channels"`
-    Encoding    string  `json:"encoding"`
-    Url         string  `json:"url"`
-}
-
-// Opus metadata struct
-//
-// Contains information about how the file was encoded
-// with Opus.
-type OpusMetadata struct {
-    Bitrate     int     `json:"abr"`
-    SampleRate  int     `json:"sample_rate"`
-    Application string  `json:"mode"`
-    FrameSize   int     `json:"frame_size"`
-    Channels    int     `json:"channels"`
-}
-
-// Extra metadata struct
-type ExtraMetadata struct {}
-
-////////////////////////////////////////////////////////
-/// FFprobe Structures
-////////////////////////////////////////////////////////
-
-type FFprobeMetadata struct {
-    Format  *FFprobeFormat  `json:"format"`
-}
-
-type FFprobeFormat struct {
-    FileName        string          `json:"filename"`
-    NumStreams      int             `json:"nb_streams"`
-    NumPrograms     int             `json:"nb_programs"`
-    FormatName      string          `json:"format_name"`
-    FormatLongName  string          `json:"format_long_name"`
-    StartTime       string          `json:"start_time"`
-    Duration        string          `json:"duration"`
-    Size            string          `json:"size"`
-    Bitrate         string          `json:"bit_rate"`
-    ProbeScore      int             `json:"probe_score"`
-
-    Tags            *FFprobeTags    `json:"tags"`
-}
-
-type FFprobeTags struct {
-    Date        string  `json:"date"`
-    Track       string  `json:"track"`
-    Artist      string  `json:"artist"`
-    Genre       string  `json:"genre"`
-    Title       string  `json:"title"`
-    Album       string  `json:"album"`
-    Compilation string  `json:"compilation"`
-}
 
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
@@ -241,6 +128,10 @@ func uploadSoundFile(cmd *modulebase.ModuleCommand) (string, error) {
 	if len(cmd.Args)!= 3 {
 		return uploadHelpString, nil
 	}
+	user := cmd.Message.Author
+	if bits.GetBits(cmd.Guild.ID, user.ID) < 300 {
+		return "**FAILED TO ADD SOUND:** Insufficient bits.", nil
+	}
 	prefix := cmd.Args[0]
 	name := cmd.Args[1]
 	filename := prefix+"_"+name
@@ -250,10 +141,17 @@ func uploadSoundFile(cmd *modulebase.ModuleCommand) (string, error) {
 	OutFD, _ = os.Create(OutFile)
 	defer InFD.Close()
 	defer InFD.Close()
+	defer os.Remove(InFile)
 	resp, _ := http.Get(cmd.Args[2])
 	defer resp.Body.Close()
 	io.Copy(InFD, resp.Body)
-	processUploadFile()
+	result := processUploadFile()
+	if result < 0 {
+		if result == -2 {
+			return "**FAILED TO ADD SOUND:** Clip was longer than 15 seconds.", nil
+		}
+		return "**FAILED TO ADD SOUND:** FFProbe Error", nil
+	}
 	log.Debug("Starting to add sound to soundboard")
 	collections := sound.GetCollections()
 	log.Debug("Got Collections")
@@ -271,28 +169,30 @@ func uploadSoundFile(cmd *modulebase.ModuleCommand) (string, error) {
 			log.Debug("%v", sound.Name)
 		}
 	}
-	// log.Debug("New Collection")
-	// var NEW *sound.SoundCollection = &sound.SoundCollection{
-	// 	Prefix: prefix,
-	// 	Commands: []string{
-	// 		prefix,
-	// 	},
-	// 	Sounds: []*sound.Sound{
-	// 		sound.CreateSound(name, 50, 0),
-	// 	},
-	// }
-	// sound.AddCollection(NEW)
-	// NEW.Sounds[0].Load(NEW)
-	// log.Debug("Added sound")
-	return "", nil
+	log.Debug("New Collection")
+	var NEW *sound.SoundCollection = &sound.SoundCollection{
+		Prefix: prefix,
+		Commands: []string{
+			prefix,
+		},
+		Sounds: []*sound.Sound{
+			sound.CreateSound(name, 50, 0),
+		},
+	}
+	sound.AddCollection(NEW)
+	NEW.Sounds[0].Load(NEW)
+	log.Debug("Added sound")
+	bits.RemoveBits(cmd.Session, cmd.Guild.ID, user.ID, 300, "Added sound "+prefix+"_"+name)
+	return "**"+utils.GetPreferredName(cmd.Guild, user.ID)+"** added sound **"+name+"** to collection **"+prefix+"**", nil
 }
+//ALL THIS CODE FROM https://github.com/bwmarrin/dca/cmd/dca/main.go
 
-func processUploadFile() {
+func processUploadFile() int {
 	MaxBytes = (FrameSize * Channels) * 2
 	OpusEncoder, err = gopus.NewEncoder(FrameRate, Channels, gopus.Audio)
 	if err != nil {
 		fmt.Println("NewEncoder Error:", err)
-		return
+		return -1
 	}
 
 	OpusEncoder.SetBitrate(Bitrate * 1000)
@@ -334,29 +234,32 @@ func processUploadFile() {
 	err = ffprobe.Start()
 	if err != nil {
 		fmt.Println("RunStart Error:", err)
-		return
+		return -1
 	}
 
 	err = ffprobe.Wait()
 	if err != nil {
 		fmt.Println("FFprobe Error:", err)
-		return
+		return -1
 	}
 
 	err = json.Unmarshal(CmdBuf.Bytes(), &FFprobeData)
 	if err != nil {
 		fmt.Println("Error unmarshaling the FFprobe JSON:", err)
-		return
+		return -1
 	}
 
 	bitrateInt, err := strconv.Atoi(FFprobeData.Format.Bitrate)
 	if err != nil {
 		fmt.Println("Could not convert bitrate to int:", err)
-		return
+		return -1
 	}
-
+	duration, _ := strconv.ParseFloat(FFprobeData.Format.Duration, 32)
+	if duration > 15.0 {
+		return -2
+	}
 	log.Debug("Finished ffprobe")
-
+	log.Debugf("%v", FFprobeData)
 	Metadata.SongInfo = &SongMetadata{
 		Title:    FFprobeData.Format.Tags.Title,
 		Artist:   FFprobeData.Format.Tags.Artist,
@@ -381,7 +284,7 @@ func processUploadFile() {
 	err = cover.Start()
 	if err != nil {
 		fmt.Println("RunStart Error:", err)
-		return
+		return -1
 	}
 
 	err = cover.Wait()
@@ -422,7 +325,7 @@ func processUploadFile() {
 	// wait for above goroutines to finish, then exit.
 	wg.Wait()
 	log.Debug("Finished processing file")
-	return
+	return 0
 }
 
 // reader reads from the input
@@ -510,27 +413,6 @@ func writer() {
 	// 16KB output buffer
 	wbuf := bufio.NewWriterSize(OutFD, 16384)
 	defer wbuf.Flush()
-
-	// write the magic bytes
-	// wbuf.Write([]byte(MagicBytes))
-	//
-	// // encode and write json length
-	// json, err := json.Marshal(Metadata)
-	// if err != nil {
-	// 	fmt.Println("Failed to encode the Metadata JSON:", err)
-	// 	return
-	// }
-	//
-	// jsonlen = int32(len(json))
-	// err = binary.Write(wbuf, binary.LittleEndian, &jsonlen)
-	// if err != nil {
-	// 	fmt.Println("error writing output: ", err)
-	// 	return
-	// }
-	//
-	// // write the actual json
-	// wbuf.Write(json)
-
 	for {
 		opus, ok := <-OutputChan
 		if !ok {
@@ -556,11 +438,13 @@ func writer() {
 	}
 }
 
+//END OF CODE FROM https://github.com/bwmarrin/dca/cmd/dca/main.go
+
 func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 	log.Debugf("Sound :%v", cmd.Args)
 	if len(cmd.Args) == 0 || cmd.Args[0] =="help" {
 		availableCollections()
-		return sHelpString, nil
+		return sHelpStringHead+sound.PrintCollections()+sHelpStringTail, nil
 	}
 
 	for _, coll := range sound.GetCollections() {

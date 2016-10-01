@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"time"
-
+	"strings"
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 
@@ -23,6 +23,7 @@ const (
 var (
 	// Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
 	queues map[string]chan *Play = make(map[string]chan *Play)
+	collections []*SoundCollection = []*SoundCollection{}
 )
 
 // Play represents an individual use of the !airhorn command
@@ -127,10 +128,8 @@ func (s *Sound) Load(c *SoundCollection) error {
 		}
 
 		// read encoded pcm from dca file
-		log.Debug("Opuslen: %v", opuslen)
 		InBuf := make([]byte, opuslen)
 		err = binary.Read(file, binary.LittleEndian, &InBuf)
-		log.Debug("Successful Binary Read!")
 		// Should not be any end of file errors
 		if err != nil {
 			fmt.Println("error reading encoded pcm from dca file :", err)
@@ -304,16 +303,77 @@ func FindSoundByName(base string, name string) *Sound {
 }
 
 func LoadSounds() {
-	for _, coll := range collections {
-		coll.Load()
+	audio, _ := os.Open("audio")
+	files, _ := audio.Readdirnames(0)
+	for _, file := range files {
+		parts := strings.Split(file, "_")
+		prefix := parts[0]
+		name := parts[1]
+		for i := 2; i < len(parts); i++ {
+			name = name+"_"+parts[i]
+		}
+		name = (strings.Split(name, "."))[0]
+		coll := getCollection(prefix)
+		if(coll==nil){
+			log.Debug("Creating collection "+prefix+" with sound "+name)
+			var NEW *SoundCollection = &SoundCollection{
+				Prefix: prefix,
+				Commands: []string{
+					prefix,
+				},
+				Sounds: []*Sound{
+					CreateSound(name, 50, 0),
+				},
+			}
+			log.Debug("Created collection "+prefix)
+			AddCollection(NEW)
+			log.Debug("Added collection "+prefix)
+			NEW.Sounds[0].Load(NEW)
+			log.Debug("Loaded sound "+name)
+		} else{
+			log.Debug("Adding sound "+name+" to collection "+prefix)
+			newSound := CreateSound(name, 50, 0)
+			coll.Sounds = append(coll.Sounds, newSound)
+			newSound.Load(coll)
+		}
+		//coll.Load()
 	}
+	// collections := GetCollections()
+	// for _, coll := range collections {
+	// 	coll.Load()
+	// }
 }
 
 func GetCollections() []*SoundCollection {
 	return collections
 }
 
+func getCollection(prefix string) *SoundCollection{
+	for _, coll := range collections {
+		if(coll.Prefix == prefix){
+			return coll
+		}
+	}
+	return nil
+}
+
+
 func AddCollection(newCollection *SoundCollection) error {
 	collections = append(collections, newCollection)
 	return nil
+}
+
+func PrintCollections() string {
+	result := ""
+	for _, coll := range collections {
+		result += "**"+coll.Prefix+":** "
+		for i, sound := range coll.Sounds {
+			if i < (len(coll.Sounds) - 1) {
+				result+= sound.Name+", "
+			} else {
+				result+= sound.Name+"\n"
+			}
+		}
+	}
+	return result
 }

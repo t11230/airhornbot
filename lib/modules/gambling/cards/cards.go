@@ -16,8 +16,8 @@ const (
 	cardsPerRow    = 5
 )
 
-// GenerateImage converts an array of Cards into an Image
-func GenerateImage(cards []Card) (image.Image, error) {
+// RenderCards converts an array of Cards into an Image
+func RenderCards(cards []Card) (image.Image, error) {
 	log.Debug("Generating image")
 
 	nCards := len(cards)

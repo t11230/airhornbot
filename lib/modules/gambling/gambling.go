@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"github.com/t11230/ramenbot/lib/modules/gambling/blackjack"
 	"github.com/t11230/ramenbot/lib/modules/gambling/cards"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/perms"
@@ -78,8 +79,24 @@ var commandTree = []modulebase.ModuleCommandTree{
 				Function:    takeBits,
 				Permissions: []perms.Perm{bitsAdminPerm},
 			},
-			"draw": modulebase.CN{
-				Function: handleDrawCommand,
+			"21": modulebase.CN{
+				SubKeys: modulebase.SK{
+					"start": modulebase.CN{
+						Function: blackjack.HandleStart,
+					},
+					"deal": modulebase.CN{
+						Function: blackjack.HandleDeal,
+					},
+					"bet": modulebase.CN{
+						Function: blackjack.HandleBet,
+					},
+					"hit": modulebase.CN{
+						Function: blackjack.HandleHit,
+					},
+					"stay": modulebase.CN{
+						Function: blackjack.HandleStay,
+					},
+				},
 			},
 		},
 		Function: handleRootCommand,
@@ -130,7 +147,7 @@ func handleDrawCommand(cmd *modulebase.ModuleCommand) (string, error) {
 			return
 		}
 
-		img, err := cards.GenerateImage(c.Cards)
+		img, err := cards.RenderCards(c.Cards)
 		if err != nil {
 			log.Error(err)
 			return

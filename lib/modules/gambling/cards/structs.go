@@ -7,10 +7,11 @@ type Deck struct {
 }
 
 type Card struct {
-	ImageURL string `json:"image"`
-	Value    string `json:"value"`
-	Suit     string `json:"suit"`
-	Code     string `json:"code"`
+	ImageURL   string `json:"image"`
+	Value      string `json:"value"`
+	Suit       string `json:"suit"`
+	Code       string `json:"code"`
+	IsFaceDown bool
 }
 
 type DrawResult struct {
@@ -18,3 +19,11 @@ type DrawResult struct {
 	DeckID    string `json:"deck_id"`
 	Remaining int    `json:"remaining"`
 }
+
+type Pile struct {
+	Cards     []Card
+	DeckID    string
+	Remaining int
+}
+
+type ValueMap map[string]int

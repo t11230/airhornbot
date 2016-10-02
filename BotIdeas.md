@@ -8,8 +8,6 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 - Bit Poker/Blackjack
 - Bit Bets on online games (CAH, Pokemon Showdown)
 - Bit Bet on number of members in call
-- Bit Buy Nickname changes
-- Bit Buy Titles via roles (Ikon Leader)
 - Bit Buy Pizza
 - Bit Buy Add Custom Commands (via Lua)
 - Bit Buy Welcome Message

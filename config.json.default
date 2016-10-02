@@ -6,6 +6,7 @@
         { "name": "gambling", "enable": true, "options": {} },
         { "name": "greeter", "enable": true },
         { "name": "help", "enable": true },
+        { "name": "nick", "enable": true },
         { "name": "rolemod", "enable": true },
         { "name": "soundboard", "enable": true },
         { "name": "voicebonus", "enable": true }

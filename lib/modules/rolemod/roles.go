@@ -1,11 +1,13 @@
 package rolemod
 
 import (
+    "strings"
     log "github.com/Sirupsen/logrus"
     "github.com/t11230/ramenbot/lib/modules/modulebase"
     "github.com/bwmarrin/discordgo"
     "github.com/t11230/ramenbot/lib/perms"
     "github.com/t11230/ramenbot/lib/utils"
+    "github.com/t11230/ramenbot/lib/bits"
 )
 
 var (
@@ -18,6 +20,8 @@ var (
     disco string
     is_4ever bool
     is_5ever bool
+
+    m = make(map[string]int)
 )
 
 // Module name used in the config file
@@ -48,6 +52,13 @@ For more info on using any of these functions, type **!!role [function name] hel
     Use color *clear* to reset to black.
     Use color *disco* for disco party.`
 
+    roleCreateHelpString = `**CREATE**
+
+**usage:** !!role create *rolename* *color*
+    Creates role with name *rolename* and color indicated by *color* (hex value).
+    Then, gives user that role.
+    **WARNING** Creating a role costs **650 bits**
+    `
     role_perms = 0x00000001 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00004000 | 0x00008000 | 0x00010000 | 0x00020000 | 0x00100000 | 0x00200000
 )
 
@@ -63,6 +74,9 @@ var commandTree = []modulebase.ModuleCommandTree{
             "help": modulebase.CN{
 				Function:   handleRoleHelp,
 			},
+            "create": modulebase.CN{
+                Function:   handleRoleCreate,
+            },
 		},
 	},
 }
@@ -71,6 +85,12 @@ var roleControlPerm = perms.Perm{"role-control"}
 
 // Called to initialize this module
 func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, error) {
+    m["red"]=0xe74c3c
+    m["orange"]=0xe67e22
+    m["yellow"]=0xf1c40f
+    m["green"]=0x2ecc71
+    m["blue"]=0x3498db
+    m["purple"]=0x9b59b6
 	return &modulebase.ModuleSetupInfo{
 		Commands: &commandTree,
         Help:     helpString,
@@ -85,6 +105,36 @@ func handleDbStart() error {
 
 func handleRoleHelp(cmd *modulebase.ModuleCommand) (string, error) {
     return roleHelpString, nil
+}
+
+func getRoleName(msg string) string {
+    msgArr := strings.Split(msg, " ")
+    return strings.Join(msgArr[3:], " ")
+}
+
+func handleRoleCreate(cmd *modulebase.ModuleCommand) (string, error) {
+    user := cmd.Message.Author
+    guild := cmd.Guild
+    s := cmd.Session
+    member := utils.GetMember(guild, user.ID)
+    if bits.GetBits(guild.ID, user.ID) < 650 {
+		return "**FAILED TO ADD ROLE:** Insufficient bits.", nil
+	}
+    if len(cmd.Args)<2 {
+        return roleCreateHelpString, nil
+    }
+    newrole, err := s.GuildRoleCreate(guild.ID)
+    roleName := getRoleName(cmd.Message.Content)
+    color, _ := m[cmd.Args[0]]
+    newrole, err = s.GuildRoleEdit(guild.ID, newrole.ID, roleName, color, false, role_perms)
+    member.Roles = append(member.Roles, newrole.ID)
+    err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
+    if err != nil {
+        log.Error("Failed to update user's role")
+        return "**Failed to update user's role**", nil
+    }
+    bits.RemoveBits(s, guild.ID, user.ID, 650, "Added role "+roleName)
+    return "", nil
 }
 
 func createColors(s *discordgo.Session, guild *discordgo.Guild, m *discordgo.Message) string {

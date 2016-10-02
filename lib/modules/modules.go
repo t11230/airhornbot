@@ -9,6 +9,7 @@ import (
 	"github.com/t11230/ramenbot/lib/modules/greeter"
 	"github.com/t11230/ramenbot/lib/modules/help"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
+	"github.com/t11230/ramenbot/lib/modules/nick"
 	"github.com/t11230/ramenbot/lib/modules/rolemod"
 	"github.com/t11230/ramenbot/lib/modules/soundboard"
 	"github.com/t11230/ramenbot/lib/modules/voicebonus"
@@ -20,6 +21,7 @@ var (
 		admin.ConfigName:      admin.SetupFunc,
 		gambling.ConfigName:   gambling.SetupFunc,
 		greeter.ConfigName:    greeter.SetupFunc,
+		nick.ConfigName:       nick.SetupFunc,
 		rolemod.ConfigName:    rolemod.SetupFunc,
 		soundboard.ConfigName: soundboard.SetupFunc,
 		voicebonus.ConfigName: voicebonus.SetupFunc,

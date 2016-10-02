@@ -5,17 +5,14 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 ##Bit Ideas:
 - Bit Loans
 - Bit Stock Market (real or simulated)
-- Bit Store Website
 - Bit Poker/Blackjack
-- Bit Bets on online games (CAH, Pokemon Showdown, ect.)
-- Bit Bets on Pokemon Go events
+- Bit Bets on online games (CAH, Pokemon Showdown)
 - Bit Bet on number of members in call
 - Bit Buy Nickname changes
 - Bit Buy Titles via roles (Ikon Leader)
 - Bit Buy Pizza
 - Bit Buy Add Custom Commands (via Lua)
 - Bit Buy Welcome Message
-- Bit Buy Disable Sound Commands
 
 ##General:
 - Achievement Titles via roles
@@ -24,5 +21,9 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 - CAH Spectator
     - message bot the link and password to the game, then bot sends it to everyone when they join the call.
 - Pokemon Showdown Spectator
-- Gameplay Tracking (improve)
 - Improve Markov Chain
+
+##Wit.AI
+
+- Have bot listen to all users and parse speech
+- ???

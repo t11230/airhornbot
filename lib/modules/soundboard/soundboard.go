@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"time"
 	log "github.com/Sirupsen/logrus"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/sound"
@@ -40,6 +41,7 @@ This module allows the user to play sounds from a dank soundboard.
 
 For the command to upload sounds to the soundboard, type **!!s upload help**
 
+For the command to disable sounds for a period of time, type **!!s silence help**
 `
 
 	uploadHelpString = `**UPLOAD**
@@ -48,6 +50,14 @@ This module allows the user to upload sounds to the bot's soundboard.
 **usage:** put !!s upload *collection* *soundname* in the comments of an audio file attachment
 Processes the attached soundfile and adds it to the soundboard as *soundname* in the collection *collection*
 **WARNING** Uploading a sound to the soundboard costs **300 bits**
+`
+
+	silenceHelpString = `**SILENCE**
+This module allows the user to upload sounds to the bot's soundboard.
+
+**usage:** !!s silence *duration*
+Prevents any sound clips from being played for *duration* minutes
+**WARNING** Silencing the soundboard costs **100 bits** per minute
 `
 
 	// The current version of the DCA format
@@ -68,6 +78,7 @@ Processes the attached soundfile and adds it to the soundboard as *soundname* in
 )
 
 var (
+	SoundCommandsEnabled = true
 	// Buffer for some commands
 	CmdBuf bytes.Buffer
 	PngBuf bytes.Buffer
@@ -109,6 +120,9 @@ var commandTree = []modulebase.ModuleCommandTree{
 		SubKeys:     modulebase.SK{
 			"upload": modulebase.CN{
 				Function: uploadSoundFile,
+			},
+			"silence": modulebase.CN{
+				Function: silenceSounboard,
 			},
 		},
 		Function:    handleSoundCommand,
@@ -158,15 +172,16 @@ func uploadSoundFile(cmd *modulebase.ModuleCommand) (string, error) {
 	for _, collection := range collections {
 		if collection.Prefix == prefix {
 			log.Debug("Existing Collection")
+			for _, sound := range collection.Sounds {
+				if sound.Name == name{
+					return "**FAILED TO ADD SOUND:** Sound with that name already exists in collection", nil
+				}
+			}
 			newSound := sound.CreateSound(name, 50, 0)
 			collection.Sounds = append(collection.Sounds, newSound)
 			newSound.Load(collection)
 			log.Debug("Added sound")
-		}
-	}
-	for _, collection := range collections {
-		for _, sound := range collection.Sounds {
-			log.Debug("%v", sound.Name)
+			return "**"+utils.GetPreferredName(cmd.Guild, user.ID)+"** added sound **"+name+"** to collection **"+prefix+"**", nil
 		}
 	}
 	log.Debug("New Collection")
@@ -446,7 +461,9 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 		availableCollections()
 		return sHelpStringHead+sound.PrintCollections()+sHelpStringTail, nil
 	}
-
+	if !SoundCommandsEnabled {
+		return "**SOUND COMMANDS ARE CURRENTLY DISABLED**", nil
+	}
 	for _, coll := range sound.GetCollections() {
 		if utils.Scontains(cmd.Args[0], coll.Commands...) {
 
@@ -470,6 +487,21 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 	}
 
 	return "Unable to find sound", nil
+}
+
+func silenceSounboard(cmd *modulebase.ModuleCommand) (string, error) {
+	duration, err := strconv.Atoi(cmd.Args[0])
+	if err != nil {
+		return "**Invalid silence duration**", nil
+	}
+	user := cmd.Message.Author
+	if bits.GetBits(cmd.Guild.ID, user.ID) < (duration * 100) {
+		return "**FAILED TO SILENCE SOUNDBOARD:** Insufficient bits.", nil
+	}
+	SoundCommandsEnabled = false
+	time.Sleep(time.Duration(duration)*time.Minute)
+	SoundCommandsEnabled = true
+	return "**Soundboard is no longer silenced**", nil
 }
 
 func availableCollections() []string {

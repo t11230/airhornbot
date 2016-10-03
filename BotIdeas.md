@@ -5,7 +5,7 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 ##Bit Ideas:
 - Bit Loans
 - Bit Stock Market (real or simulated)
-- Bit Poker/Blackjack
+- Bit Poker
 - Bit Bets on online games (CAH, Pokemon Showdown)
 - Bit Bet on number of members in call
 - Bit Buy Pizza

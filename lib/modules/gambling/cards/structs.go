@@ -1,29 +1,53 @@
 package cards
 
+type Suit int
+type Value int
+
+const (
+	Clubs Suit = iota
+	Diamonds
+	Hearts
+	Spades
+)
+
+const (
+	Ace Value = iota
+	Two
+	Three
+	Four
+	Five
+	Six
+	Seven
+	Eight
+	Nine
+	Ten
+	Jack
+	Queen
+	King
+)
+
+var (
+	DefaultSuits  = []Suit{Clubs, Diamonds, Hearts, Spades}
+	DefaultValues = []Value{
+		Ace, Two, Three, Four, Five,
+		Six, Seven, Eight, Nine, Ten,
+		Jack, Queen, King,
+	}
+)
+
 type Deck struct {
-	DeckID    string `json:"deck_id"`
-	Remaining int    `json:"remaining"`
-	Shuffled  bool   `json:"shuffled"`
+	Cards    []Card
+	Shuffled bool
 }
 
 type Card struct {
-	ImageURL   string `json:"image"`
-	Value      string `json:"value"`
-	Suit       string `json:"suit"`
-	Code       string `json:"code"`
+	Value      Value
+	Suit       Suit
 	IsFaceDown bool
 }
 
-type DrawResult struct {
-	Cards     []Card `json:"cards"`
-	DeckID    string `json:"deck_id"`
-	Remaining int    `json:"remaining"`
-}
-
 type Pile struct {
-	Cards     []Card
-	DeckID    string
-	Remaining int
+	Cards []Card
 }
 
-type ValueMap map[string]int
+type ValueMap map[Value]int

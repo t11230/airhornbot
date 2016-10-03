@@ -20,6 +20,7 @@ const (
 const (
 	PayoutLoss Payout = iota
 	PayoutWin
+	PayoutPush
 	PayoutBlackjack
 )
 
@@ -30,10 +31,10 @@ type Payout int
 type historyCollection struct{ *mgo.Collection }
 
 type Hand struct {
-	Cards     []cards.Card `bson:",omitempty"`
-	Bet       int          `bson:",omitempty"`
-	Complete  bool         `bson:",omitempty"`
-	Blackjack bool         `bson:",omitempty"`
+	Pile      cards.Pile `bson:",omitempty"`
+	Bet       int        `bson:",omitempty"`
+	Complete  bool       `bson:",omitempty"`
+	Blackjack bool       `bson:",omitempty"`
 }
 
 type Player struct {
@@ -87,4 +88,13 @@ type TurnTimer struct {
 	OnTimeout    <-chan time.Time
 	OnAction     chan Action
 	UserID       string
+}
+
+type DrawingSlot struct {
+	CardX       int
+	CardY       int
+	NameX       float64
+	NameY       float64
+	NameAnchorX float64
+	NameAnchorY float64
 }

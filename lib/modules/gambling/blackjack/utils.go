@@ -7,26 +7,26 @@ import (
 
 func (h *Hand) GetAvailableActions() (actions []Action) {
 	actions = []Action{ActionSurrender, ActionStay, ActionHit}
-	if len(h.Cards) == 2 &&
-		h.Cards[0].NumericValue(cards.BlackjackAceHighMap) ==
-			h.Cards[1].NumericValue(cards.BlackjackAceHighMap) {
+	if len(h.Pile.Cards) == 2 &&
+		h.Pile.Cards[0].NumericValue(cards.BlackjackAceHighMap) ==
+			h.Pile.Cards[1].NumericValue(cards.BlackjackAceHighMap) {
 		actions = append(actions, ActionSplit)
 	}
 
-	if len(h.Cards) == 2 {
+	if len(h.Pile.Cards) == 2 {
 		actions = append(actions, ActionDoubleDown)
 	}
 	return
 }
 
-func (p *Player) AddHand(c cards.Card) {
+func (p *Player) AddHand(c ...cards.Card) {
 	log.Debug("Adding hand")
 	if p.Hands == nil {
 		p.Hands = []Hand{}
 	}
 	newHand := Hand{
 		Bet:       p.InitialBet,
-		Cards:     []cards.Card{c},
+		Pile:      cards.Pile{c},
 		Complete:  false,
 		Blackjack: false,
 	}
@@ -35,18 +35,17 @@ func (p *Player) AddHand(c cards.Card) {
 	return
 }
 
-func checkHandBust(c []cards.Card) (bust bool) {
-	p := cards.Pile{Cards: c}
+func (h *Hand) CheckBust() (bust bool) {
 	bust = false
 
-	a := p.Sum(cards.BlackjackAceLowMap)
+	a := h.Pile.Sum(cards.BlackjackAceLowMap)
 	log.Debugf("A Score: %v", a)
 
 	if a <= 21 {
 		return
 	}
 
-	b := p.Sum(cards.BlackjackAceHighMap)
+	b := h.Pile.Sum(cards.BlackjackAceHighMap)
 
 	log.Debugf("B Score: %v", b)
 
@@ -88,9 +87,7 @@ func getDealerAction(c []cards.Card) (action Action) {
 	return ActionStay
 }
 
-func getScore(c []cards.Card) int {
-	p := cards.Pile{Cards: c}
-
+func getScore(p cards.Pile) int {
 	aceLowScore := p.Sum(cards.BlackjackAceLowMap)
 	aceHighScore := p.Sum(cards.BlackjackAceHighMap)
 
@@ -105,9 +102,12 @@ func getScore(c []cards.Card) int {
 	return 0
 }
 
-func checkHandCanSplit(c []cards.Card) (canSplit bool) {
-	if c[0].NumericValue(cards.BlackjackAceHighMap) ==
-		c[1].NumericValue(cards.BlackjackAceHighMap) {
+func checkHandCanSplit(p cards.Pile) (canSplit bool) {
+	if len(p.Cards) != 2 {
+		return false
+	}
+	if p.Cards[0].NumericValue(cards.BlackjackAceHighMap) ==
+		p.Cards[1].NumericValue(cards.BlackjackAceHighMap) {
 		return true
 	}
 
@@ -119,7 +119,7 @@ func calculatePayout(pBlackjack bool, pScore int, dBlackjack bool, dScore int) P
 	if dBlackjack {
 		if pBlackjack {
 			// Return bet if its a push
-			return PayoutWin
+			return PayoutPush
 		}
 		return PayoutLoss
 	}
@@ -135,7 +135,11 @@ func calculatePayout(pBlackjack bool, pScore int, dBlackjack bool, dScore int) P
 	} else if pScore < dScore {
 		return PayoutLoss
 	}
-	return PayoutWin
+
+	if pScore > 21 {
+		return PayoutLoss
+	}
+	return PayoutPush
 }
 
 func (a *Action) String() string {

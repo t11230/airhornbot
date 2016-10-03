@@ -2,51 +2,89 @@ package cards
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"github.com/nfnt/resize"
+	"github.com/fogleman/gg"
 	"image"
-	"image/draw"
+	"math/rand"
+	"path"
 )
 
-const (
-	cardWidth      = 75
-	cardXSpacing   = 2
-	cardYSpacing   = 5
-	cardSlotWidth  = cardWidth + cardXSpacing
-	cardSlotHeight = 105
-	cardsPerRow    = 5
-)
+func NewDeck(shuffle bool) (d *Deck) {
+	log.Debug("Creating a new deck")
+	d = &Deck{}
 
-// RenderCards converts an array of Cards into an Image
-func RenderCards(cards []Card) (image.Image, error) {
-	log.Debug("Generating image")
+	d.Cards = make([]Card, len(DefaultSuits)*len(DefaultValues))
 
-	nCards := len(cards)
-
-	nCardsInFirstRow := nCards
-	if nCardsInFirstRow > 5 {
-		nCardsInFirstRow = 5
-	}
-
-	resultImg := image.NewRGBA(image.Rect(0, 0,
-		cardSlotWidth*nCardsInFirstRow+cardXSpacing*2,
-		cardSlotHeight*(((nCards-1)/cardsPerRow)+1)+cardYSpacing*2))
-
-	log.Debugf("Image Size: %v", resultImg.Bounds())
-
-	for index, c := range cards {
-		img, err := c.GetImage()
-		if err != nil {
-			log.Error(err)
-			return nil, err
+	// Generate all combinations of the default suits and values
+	for suitIdx, suit := range DefaultSuits {
+		for valueIdx, value := range DefaultValues {
+			deckIdx := suitIdx*len(DefaultValues) + valueIdx
+			d.Cards[deckIdx] = Card{
+				Value:      value,
+				Suit:       suit,
+				IsFaceDown: false,
+			}
 		}
-
-		rImg := resize.Thumbnail(cardWidth, uint(img.Bounds().Dy()), img, resize.Bilinear)
-
-		pt := image.Point{cardSlotWidth*(index%cardsPerRow) + cardXSpacing,
-			cardSlotHeight*(index/cardsPerRow) + cardYSpacing}
-		rect := image.Rectangle{pt, pt.Add(rImg.Bounds().Size())}
-		draw.Draw(resultImg, rect, rImg, image.Point{0, 0}, draw.Src)
 	}
 
-	return resultImg, nil
+	// Shuffle if necessary
+	if shuffle {
+		d.Shuffle()
+	}
+	return
+}
+
+func (d *Deck) Shuffle() {
+	// https://gist.github.com/quux00/8258425
+	N := len(d.Cards)
+	for i := 0; i < N; i++ {
+		r := i + rand.Intn(N-i)
+		d.Cards[r], d.Cards[i] = d.Cards[i], d.Cards[r]
+	}
+
+	d.Shuffled = true
+}
+
+func (d *Deck) Draw(nCards int) (result *Pile) {
+	result = &Pile{d.Cards[:nCards]}
+	d.Cards = d.Cards[nCards:]
+	return
+}
+
+func (p *Pile) AddCards(cards ...Card) {
+	p.Cards = append(p.Cards, cards...)
+}
+
+func (p *Pile) AddPile(pile *Pile) {
+	p.Cards = append(p.Cards, pile.Cards...)
+}
+
+func (c *Card) GetImage() (image.Image, error) {
+	return gg.LoadImage(c.GetFilepath())
+}
+
+func (c *Card) GetFilename() (str string) {
+	if c.IsFaceDown {
+		return "redBack.png"
+	}
+
+	suitFname, ok := suitImageNameMap[c.Suit]
+	if !ok {
+		log.Errorf("Unknown suit %v", c.Suit)
+		return "unknown"
+	}
+	str += suitFname
+
+	valueFname, ok := valueImageNameMap[c.Value]
+	if !ok {
+		log.Errorf("Unknown value %v", c.Value)
+		return "unknown"
+	}
+	str += valueFname
+
+	str += ".png"
+	return
+}
+
+func (c *Card) GetFilepath() string {
+	return path.Join("assets", "png-42px", c.GetFilename())
 }

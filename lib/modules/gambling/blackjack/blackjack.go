@@ -44,6 +44,11 @@ func startRound(s *discordgo.Session, guildId string) {
 
 	newRound := newRound(s, pendingRound)
 
+	if newRound == nil {
+		log.Error("newRound was nil")
+		return
+	}
+
 	createRunningRound(guildId, newRound)
 
 	log.Debug("Round started")
@@ -115,7 +120,7 @@ func addPlayer(s *discordgo.Session, guildId string, userId string, bet int) (be
 		InitialBet: pendingRound.MinimumBet,
 	}
 
-	if bet > 0 {
+	if bet > pendingRound.MinimumBet {
 		newPlayer.InitialBet = bet
 	}
 

@@ -5,11 +5,9 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/t11230/ramenbot/lib/modules/gambling/blackjack"
-	"github.com/t11230/ramenbot/lib/modules/gambling/cards"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
-	"image/png"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -96,6 +94,12 @@ var commandTree = []modulebase.ModuleCommandTree{
 					"stay": modulebase.CN{
 						Function: blackjack.HandleStay,
 					},
+					"split": modulebase.CN{
+						Function: blackjack.HandleSplit,
+					},
+					"double": modulebase.CN{
+						Function: blackjack.HandleDoubleDown,
+					},
 				},
 			},
 		},
@@ -126,39 +130,6 @@ func handleDbStart() error {
 
 func handleRootCommand(cmd *modulebase.ModuleCommand) (string, error) {
 	return gamblingHelpString, nil
-}
-
-func handleDrawCommand(cmd *modulebase.ModuleCommand) (string, error) {
-	nCards := 1
-
-	if len(cmd.Args) > 0 {
-		nCards, _ = strconv.Atoi(cmd.Args[0])
-	}
-
-	go func() {
-		d, err := cards.NewDeck(1)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		c, err := d.Draw(nCards)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-
-		img, err := cards.RenderCards(c.Cards)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-
-		w := &bytes.Buffer{}
-		png.Encode(w, img)
-		cmd.Session.ChannelFileSend(cmd.Message.ChannelID, "png", w)
-	}()
-
-	return "Your cards are:", nil
 }
 
 func rollDice(cmd *modulebase.ModuleCommand) (string, error) {

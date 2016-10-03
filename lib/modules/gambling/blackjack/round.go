@@ -8,12 +8,13 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/t11230/ramenbot/lib/bits"
 	"github.com/t11230/ramenbot/lib/modules/gambling/cards"
+	"github.com/t11230/ramenbot/lib/utils"
 	"image/png"
 	"time"
 )
 
 func newRound(s *discordgo.Session, pending *PendingRound) (r *Round) {
-	var err error
+	// Copy the nedded parameters from the pending game
 	r = &Round{
 		Session:    s,
 		GuildID:    pending.GuildID,
@@ -22,35 +23,37 @@ func newRound(s *discordgo.Session, pending *PendingRound) (r *Round) {
 		Players:    pending.Players,
 	}
 
-	r.Deck, err = cards.NewDeck(1)
+	// Create a new shuffled deck
+	r.Deck = cards.NewDeck(true)
+
+	// Setup the dealer as the bot user
+	user, err := s.User("@me")
 	if err != nil {
-		log.Errorf("Error creating deck: %v", err)
+		log.Errorf("Error getting bot user: %v", err)
 		return nil
 	}
-
-	user, err := s.User("@me")
 	r.Dealer = Player{
 		UserID:     user.ID,
 		InitialBet: r.MinimumBet,
 	}
 
+	// Create ths FSM to track the game
 	r.FSM = fsm.NewFSM("setup", fsm.Events{
 		{Name: "deal", Src: []string{"setup"}, Dst: "dealt"},
 		{Name: "showHands", Src: []string{"dealt"}, Dst: "handsShown"},
 		{Name: "startPlayers", Src: []string{"handsShown"}, Dst: "playerGo"},
 		{Name: "dealerBlackjack", Src: []string{"handsShown"}, Dst: "closeGame"},
-		// {Name: "playerDone", Src: []string{"playerGo"}, Dst: "playerGo"},
 		{Name: "startDealer", Src: []string{"playerGo"}, Dst: "dealerGo"},
 		{Name: "dealerDone", Src: []string{"dealerGo"}, Dst: "closeGame"},
 	}, fsm.Callbacks{
 		"enter_dealt": func(e *fsm.Event) {
 			go r.Deal()
 		},
-		"before_dealerBlackjack": func(e *fsm.Event) {
-			// go r.ShowDealerBlackjack()
-		},
 		"enter_handsShown": func(e *fsm.Event) {
-			go r.ShowTable()
+			go func() {
+				r.ShowTable()
+				r.FSM.Event("startPlayers")
+			}()
 		},
 		"enter_playerGo": func(e *fsm.Event) {
 			go r.PlayerTurn()
@@ -75,11 +78,7 @@ func (r *Round) Deal() {
 	log.Debug("Dealing round")
 
 	// Draw all the cards we will use for now
-	drawResult, err := r.Deck.Draw((len(r.Players) + 1) * 2)
-	if err != nil {
-		log.Errorf("Error drawing cards: %v", err)
-		return
-	}
+	drawResult := r.Deck.Draw((len(r.Players) + 1) * 2)
 
 	// Create the player's hands
 	for i, _ := range r.Players {
@@ -88,29 +87,41 @@ func (r *Round) Deal() {
 	}
 
 	// Now deal a card to the dealer
+	drawResult.Cards[0].IsFaceDown = true
 	r.Dealer.AddHand(drawResult.Cards[0])
 	drawResult.Cards = drawResult.Cards[1:]
 
 	// Deal the second card to each player
 	for i, _ := range r.Players {
-		r.Players[i].Hands[0].Cards = append(r.Players[i].Hands[0].Cards, drawResult.Cards[0])
+		r.Players[i].Hands[0].Pile.AddCards(drawResult.Cards[0])
 		drawResult.Cards = drawResult.Cards[1:]
 	}
 
 	// Deal the second card to the dealer
-	card := drawResult.Cards[0]
-	card.IsFaceDown = true
-	r.Dealer.Hands[0].Cards = append(r.Dealer.Hands[0].Cards, card)
+	r.Dealer.Hands[0].Pile.AddCards(drawResult.Cards[0])
 	drawResult.Cards = drawResult.Cards[1:]
 
 	log.Debug("Cards dealt")
+
+	// Check if the dealer has blackjack
+	dealerHand := r.Dealer.Hands[0]
+	if getScore(dealerHand.Pile) == 21 {
+		log.Debug("Dealer blackjack")
+		r.SendMessage("Dealer has blackjack")
+		dealerHand.Blackjack = true
+		dealerHand.Complete = true
+		r.ShowTable()
+		r.FSM.Event("dealerBlackjack")
+		return
+	}
+
 	r.FSM.Event("showHands")
 }
 
 func (r *Round) PlayerTurn() {
 	log.Debug("Running PlayerTurn")
 
-	// Run over all the players and each player's uncomplete hands
+	// Iterate over the players and each player's uncomplete hands
 	for playerIdx, _ := range r.Players {
 		player := &r.Players[playerIdx]
 		log.Debugf("Processing turn for %v", player.UserID)
@@ -119,6 +130,8 @@ func (r *Round) PlayerTurn() {
 			if hand.Complete {
 				continue
 			}
+
+			// Play that hand and mark it as done
 			r.PlayerHand(player, hand)
 			hand.Complete = true
 		}
@@ -131,22 +144,37 @@ func (r *Round) PlayerTurn() {
 func (r *Round) PlayerHand(player *Player, hand *Hand) {
 	log.Debugf("Running hand %v for %v", hand, player.UserID)
 
-	if getScore(hand.Cards) == 21 {
+	// Get the guild object for getting nicknames
+	guild, _ := r.Session.Guild(r.GuildID)
+	if guild == nil {
+		log.WithFields(log.Fields{
+			"guild": r.GuildID,
+		}).Warning("Failed to grab guild")
+		return
+	}
+
+	// Get the user's nickname
+	username := utils.GetPreferredName(guild, player.UserID)
+
+	// Check for player blackjack, at this point there can only
+	// be 2 cards in this hand, so 21 is a blackjack.
+	if getScore(hand.Pile) == 21 {
 		log.Debug("Player blackjack")
-		r.SendMessage("Blackjack!")
+		r.SendMessage(fmt.Sprintf("%s got Blackjack!", username))
 		hand.Blackjack = true
 		hand.Complete = true
 	}
 
 	for !hand.Complete {
 		// Handle prompt
-		message := "@%s's turn. Hit, Stay"
-		if checkHandCanSplit(player.Hands[0].Cards) {
-			message += ", Split"
-		}
-
-		message += " or Double down? You have 30 seconds"
-		r.SendMessage(fmt.Sprintf(message, player.UserID))
+		message := "%s's turn. Hit or Stay? (You have 30 seconds)"
+		// TODO: Handle splits/double downs
+		// message := "@%s's turn. Hit, Stay"
+		// if checkHandCanSplit(player.Hands[0].Pile) {
+		// 	message += ", Split"
+		// }
+		// message += " or Double down? You have 30 seconds"
+		r.SendMessage(fmt.Sprintf(message, username))
 
 		// Create a TurnTimer that will timeout after x seconds and
 		// accept an action during that time.
@@ -181,15 +209,8 @@ func (r *Round) PlayerHand(player *Player, hand *Hand) {
 		case ActionHit:
 			log.Debug("Hit")
 			// Draw the new card
-			drawResult, err := r.Deck.Draw(1)
-			if err != nil {
-				r.SendMessage(fmt.Sprintf("Error drawing card: %v", err))
-				return
-			}
-			hand.Cards = append(hand.Cards, drawResult.Cards...)
-
-			r.SendMessage(fmt.Sprintf("New card: %v of %v",
-				drawResult.Cards[0].Value, drawResult.Cards[0].Suit))
+			drawResult := r.Deck.Draw(1)
+			hand.Pile.AddCards(drawResult.Cards...)
 			break
 		case ActionStay:
 			log.Debug("Stay")
@@ -197,18 +218,20 @@ func (r *Round) PlayerHand(player *Player, hand *Hand) {
 			hand.Complete = true
 			break
 		case ActionSurrender:
-			// Handle surrender
+			// TODO: Handle surrender
 			break
 		case ActionSplit:
-			// Handle Split
+			// TODO: Handle Split
 			break
 		case ActionDoubleDown:
-			// Handle Doubledown
+			// TODO: Handle Doubledown
 			break
 		}
 
+		r.ShowTable()
+
 		// Check for bust hand
-		if checkHandBust(hand.Cards) {
+		if hand.CheckBust() {
 			log.Debug("Hand bust")
 			r.SendMessage("Bust")
 			hand.Complete = true
@@ -222,17 +245,14 @@ func (r *Round) DealerTurn() {
 
 	r.SendMessage("**Starting Dealer's turn**")
 
-	if getScore(hand.Cards) == 21 {
-		log.Debug("Dealer blackjack")
-		r.SendMessage("Dealer has blackjack")
-		hand.Blackjack = true
-		hand.Complete = true
+	// Flip dealer's cards to face up
+	for idx := range hand.Pile.Cards {
+		hand.Pile.Cards[idx].IsFaceDown = false
 	}
 
-	// TODO: Reveal dealer's other card
-
 	for !hand.Complete {
-		action := getDealerAction(hand.Cards)
+		// Get the action the dealer should take
+		action := getDealerAction(hand.Pile.Cards)
 
 		r.SendMessage(fmt.Sprintf("Dealer chooses %v", action.String()))
 
@@ -241,15 +261,8 @@ func (r *Round) DealerTurn() {
 		case ActionHit:
 			log.Debug("Dealer Hit")
 			// Draw the new card
-			drawResult, err := r.Deck.Draw(1)
-			if err != nil {
-				r.SendMessage(fmt.Sprintf("Error drawing card: %v", err))
-				return
-			}
-			hand.Cards = append(hand.Cards, drawResult.Cards...)
-
-			r.SendMessage(fmt.Sprintf("New card: %v of %v",
-				drawResult.Cards[0].Value, drawResult.Cards[0].Suit))
+			drawResult := r.Deck.Draw(1)
+			hand.Pile.AddCards(drawResult.Cards...)
 			break
 		case ActionStay:
 			log.Debug("Dealer stay")
@@ -257,8 +270,10 @@ func (r *Round) DealerTurn() {
 			break
 		}
 
+		r.ShowTable()
+
 		// Check for bust hand
-		if checkHandBust(hand.Cards) {
+		if hand.CheckBust() {
 			log.Debug("Dealer hand bust")
 			r.SendMessage("Dealer Bust")
 			hand.Complete = true
@@ -269,34 +284,51 @@ func (r *Round) DealerTurn() {
 }
 
 func (r *Round) CloseGame() {
-	blackjackPayoutRatio := 1.5
+	// Get the guild object for nicknames
+	guild, _ := r.Session.Guild(r.GuildID)
+	if guild == nil {
+		log.WithFields(log.Fields{
+			"guild": r.GuildID,
+		}).Warning("Failed to grab guild")
+		return
+	}
+
+	// Setup the payout ratio
+	blackjackPayoutRatio := 1.6
 
 	// Calculate the dealer score
 	dealerBlackjack := r.Dealer.Hands[0].Blackjack
-	dealerScore := getScore(r.Dealer.Hands[0].Cards)
+	dealerScore := getScore(r.Dealer.Hands[0].Pile)
 
 	// Run over all the players
 	for _, player := range r.Players {
 		log.Debugf("Processing hand for %v", player.UserID)
+		username := utils.GetPreferredName(guild, player.UserID)
 		for _, hand := range player.Hands {
 			if !hand.Complete {
 				continue
 			}
-			handScore := getScore(hand.Cards)
+			// Get the score for the current hand
+			handScore := getScore(hand.Pile)
 
+			// Calculate the payout versus the dealer's hand
 			payoutType := calculatePayout(hand.Blackjack, handScore,
 				dealerBlackjack, dealerScore)
 
+			// Handle player messaging
 			if payoutType == PayoutLoss {
 				log.Debug("Player lost")
-				r.SendMessage(fmt.Sprintf("Player %v lost", player.UserID))
+				r.SendMessage(fmt.Sprintf("Player %v lost", username))
+			} else if payoutType == PayoutPush {
+				log.Debug("Player push")
+				r.SendMessage(fmt.Sprintf("Player %v pushed", username))
 			} else {
 				log.Debug("Player won")
-				r.SendMessage(fmt.Sprintf("Player %v won", player.UserID))
+				r.SendMessage(fmt.Sprintf("Player %v won", username))
 			}
 
+			// Payout the bits
 			payoutAmount := hand.Bet
-
 			switch payoutType {
 			case PayoutLoss:
 				payoutAmount = 0
@@ -305,45 +337,37 @@ func (r *Round) CloseGame() {
 				payoutAmount = int(float64(payoutAmount) * blackjackPayoutRatio)
 			}
 
-			bits.AddBits(r.Session, r.GuildID, player.UserID, payoutAmount,
-				"Blackjack win", false)
+			// Return the bet amount
+			bits.AddBits(r.Session, r.GuildID, player.UserID, hand.Bet,
+				"Blackjack bet return", true)
+
+			// If we have net zero, there is no notification of winnings
+			if payoutType != PayoutPush {
+				bits.AddBits(r.Session, r.GuildID, player.UserID, payoutAmount,
+					"Blackjack win", false)
+			}
 		}
 	}
-	r.SendMessage("Game complete, Thanks for playing!")
+	r.SendMessage("**Game complete, Thanks for playing!**")
 	clearRunningRound(r.GuildID)
+
+	// TODO: Track historical rounds
 }
 
 func (r *Round) ShowTable() {
 	log.Debug("Running ShowTable")
-	// Show the player's hands
-	for _, player := range r.Players {
-		img, err := cards.RenderCards(player.Hands[0].Cards)
-		if err != nil {
-			log.Error(err)
-			return
-		}
 
-		w := &bytes.Buffer{}
-		png.Encode(w, img)
-		handString := fmt.Sprintf("%s's Hand is:", player.UserID)
-		r.Session.ChannelMessageSend(r.ChannelID, handString)
-		r.Session.ChannelFileSend(r.ChannelID, "png", w)
-	}
-
-	// Show dealers hand
-	img, err := cards.RenderCards(r.Dealer.Hands[0].Cards)
+	// Render the round
+	img, err := r.Render()
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
+	// Send it to the channel
 	w := &bytes.Buffer{}
 	png.Encode(w, img)
-	handString := fmt.Sprintf("Dealer's Hand is:")
-	r.Session.ChannelMessageSend(r.ChannelID, handString)
 	r.Session.ChannelFileSend(r.ChannelID, "png", w)
-
-	r.FSM.Event("startPlayers")
 }
 
 func (r *Round) SendMessage(content string) {

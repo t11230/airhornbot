@@ -1,5 +1,45 @@
 package cards
 
+func (s Suit) String() string {
+	switch s {
+	case Clubs:
+		return "Clubs"
+	case Diamonds:
+		return "Diamonds"
+	case Hearts:
+		return "Hearts"
+	case Spades:
+		return "Spades"
+	}
+	return "Unknown"
+}
+
+func (v Value) String() string {
+	if str, ok := valueStringMap[v]; ok {
+		return str
+	}
+	return "Unknown"
+}
+
+var valueStringMap = map[Value]string{
+	Ace: "Ace", Two: "Two", Three: "Three", Four: "Four",
+	Five: "Five", Six: "Six", Seven: "Seven", Eight: "Eight",
+	Nine: "Nine", Ten: "Ten", Jack: "Jack", Queen: "Queen",
+	King: "King",
+}
+
+var suitImageNameMap = map[Suit]string{
+	Clubs: "club", Diamonds: "diamond",
+	Hearts: "heart", Spades: "spade",
+}
+
+var valueImageNameMap = map[Value]string{
+	Ace: "Ace", Two: "2", Three: "3", Four: "4",
+	Five: "5", Six: "6", Seven: "7", Eight: "8",
+	Nine: "9", Ten: "10", Jack: "Jack", Queen: "Queen",
+	King: "King",
+}
+
 // Cards useful functions
 func (c *Card) NumericValue(m ValueMap) (value int) {
 	return m[c.Value]
@@ -15,15 +55,15 @@ func (p *Pile) Sum(m ValueMap) (sum int) {
 
 // Common card value maps
 var BlackjackAceHighMap = ValueMap{
-	"1": 1, "2": 2, "3": 3, "4": 4,
-	"5": 5, "6": 6, "7": 7, "8": 8,
-	"9": 9, "10": 10, "JACK": 10, "QUEEN": 10,
-	"KING": 10, "ACE": 11,
+	Two: 2, Three: 3, Four: 4,
+	Five: 5, Six: 6, Seven: 7, Eight: 8,
+	Nine: 9, Ten: 10, Jack: 10, Queen: 10,
+	King: 10, Ace: 11,
 }
 
 var BlackjackAceLowMap = ValueMap{
-	"ACE": 1, "1": 1, "2": 2, "3": 3,
-	"4": 4, "5": 5, "6": 6, "7": 7,
-	"8": 8, "9": 9, "10": 10, "JACK": 10,
-	"QUEEN": 10, "KING": 10,
+	Ace: 1, Two: 2, Three: 3, Four: 4,
+	Five: 5, Six: 6, Seven: 7, Eight: 8,
+	Nine: 9, Ten: 10, Jack: 10, Queen: 10,
+	King: 10,
 }

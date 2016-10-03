@@ -12,7 +12,7 @@ func HandleStart(cmd *modulebase.ModuleCommand) (response string, err error) {
 	}
 
 	minBet, err := strconv.Atoi(cmd.Args[0])
-	if err != nil {
+	if err != nil || minBet <= 0 {
 		return "Invalid minimum bet", nil
 	}
 

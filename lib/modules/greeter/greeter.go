@@ -9,6 +9,7 @@ import (
 	"github.com/t11230/ramenbot/lib/ramendb"
 	"github.com/t11230/ramenbot/lib/sound"
 	"github.com/t11230/ramenbot/lib/utils"
+	"github.com/t11230/ramenbot/lib/bits"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -24,11 +25,12 @@ This module allows the user to set text or voice greetings for joining a call.
 
 **usage:** !!greet *function* *args...*
 
-**permissions required:** greet-control
-
 **functions:**
     *pm:* This function allows the user to set a welcome private message to be sent by the bot.
+		**permissions required:** greet-control
 	*voice:* This function allows the user to set a welcome sound to be played by the bot.
+		**permissions required:** greet-control
+	*myvoice:* This function allows the user to set a welcome sound to be played by the bot for them only.
 
 For more info on using any of these functions, type **!!greet [function name] help**`
 
@@ -50,7 +52,19 @@ For more info on using any of these functions, type **!!greet [function name] he
 **action names:** enable, disable, set
     **enable** turns on the greeting (ignores *<collection>* *<sound>*)
 	**disable** turns off the greeting (ignores *<collection>* *<sound>*)
-    **set** sets the greeting sound to *<collection>* *<sound>* (see !!s help)`
+    **set** sets the greeting sound to *<collection>* *<sound>* (see !!s help)
+	**WARNING** Changing your nickname costs **150 bits**`
+
+	myvoiceHelpString = `**MYVOICE**
+
+**usage:** !!greet myvoice *action* *<collection>* *<sound>*
+    Handles the welcome sound played by the bot when users join the call.
+
+**action names:** enable, disable, set
+	**enable** turns on the greeting (ignores *<collection>* *<sound>*)
+	**disable** turns off the greeting (ignores *<collection>* *<sound>*)
+	**set** sets your greeting sound to *<collection>* *<sound>* (see !!s help)
+		**WARNING** Setting a welcome message costs **150 bits**`
 )
 
 // List of commands that this module accepts
@@ -65,6 +79,9 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"voice": modulebase.CN{
 				Function:    handleGreetVoice,
 				Permissions: []perms.Perm{greetControlPerm},
+			},
+			"myvoice": modulebase.CN{
+				Function:	 handlePersonalGreetVoice,
 			},
 		},
 		Function: handleGreet,
@@ -149,6 +166,36 @@ func handleGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
 	return "Updated greet voice config", nil
 }
 
+func handlePersonalGreetVoice(cmd *modulebase.ModuleCommand) (string, error) {
+	if len(cmd.Args) == 0 || cmd.Args[0] == "help" {
+		return myvoiceHelpString, nil
+	}
+	user := cmd.Message.Author
+	c := greeterCollection{ramendb.GetCollection(cmd.Guild.ID, ConfigName+"-Personal")}
+	c.CreatePersonalConfig(user.ID)
+	if cmd.Args[0] == "enable" {
+		c.VoicePersonalGreetEnable(user.ID, true)
+	} else if cmd.Args[0] == "disable" {
+		c.VoicePersonalGreetEnable(user.ID, false)
+	} else if cmd.Args[0] == "set" {
+		if len(cmd.Args) != 3 {
+			return myvoiceHelpString, nil
+		}
+		if bits.GetBits(cmd.Guild.ID, user.ID) < 150 {
+			return "**FAILED TO SET PERSONAL GREETING:** Insufficient bits.", nil
+		}
+		if sound.FindSoundByName(cmd.Args[1], cmd.Args[2]) == nil {
+			errString := fmt.Sprintf("Invalid Sound effect: %v", cmd.Args[1:3])
+			return errString, nil
+		}
+		c.SetVoicePersonalGreetSound(user.ID, strings.Join(cmd.Args[1:3], " "))
+		bits.RemoveBits(cmd.Session, cmd.Guild.ID, user.ID, 150, "Set personal greeting to"+cmd.Args[1]+"_"+cmd.Args[2])
+	} else {
+		return myvoiceHelpString, nil
+	}
+	return "Updated personal greet voice config", nil
+}
+
 // Called in response to a VoiceStateUpdate event
 func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 	log.Debugf("Greeter On voice state update: %v", v.VoiceState)
@@ -180,8 +227,28 @@ func voiceStateUpdateCallback(s *discordgo.Session, v *discordgo.VoiceStateUpdat
 	if v.VoiceState.SelfMute == true ||  v.VoiceState.SelfDeaf == true {
 		return
 	}
-	c := greeterCollection{ramendb.GetCollection(v.GuildID, ConfigName)}
-	voiceGreet, pmGreet := c.GreetEnabled(v.GuildID)
+	c := greeterCollection{ramendb.GetCollection(v.GuildID, ConfigName+"-Personal")}
+	voiceGreet, pmGreet := c.PersonalGreetEnabled(v.UserID)
+	if pmGreet {
+		message := fmt.Sprintf(c.PMGreetMessage(v.UserID),
+			utils.GetPreferredName(guild, v.UserID))
+
+		channel, _ := s.UserChannelCreate(v.UserID)
+		s.ChannelMessageSend(channel.ID, message)
+	}
+	// Handle Voice greets
+	if voiceGreet {
+		log.Debugf("Greeting :%v", member.User)
+		name := strings.Split(c.VoicePersonalGreetSound(v.UserID), " ")
+		if len(name) == 2 {
+			snd := sound.FindSoundByName(name[0], name[1])
+			go sound.EnqueuePlay(s, member.User, guild, nil, snd)
+			return
+		}
+	}
+
+	c = greeterCollection{ramendb.GetCollection(v.GuildID, ConfigName)}
+	voiceGreet, pmGreet = c.GreetEnabled(v.GuildID)
 
 	// Handle PM greets
 	if pmGreet {
@@ -220,6 +287,13 @@ type greeterConfig struct {
 	PMGreet         *bool  `bson:",omitempty"`
 	PMGreetMessage  string `bson:",omitempty"`
 }
+type personalGreeterConfig struct {
+	UserID         string
+	VoiceGreet      *bool  `bson:",omitempty"`
+	VoiceGreetSound string `bson:",omitempty"`
+	PMGreet         *bool  `bson:",omitempty"`
+	PMGreetMessage  string `bson:",omitempty"`
+}
 
 type greeterCollection struct {
 	*mgo.Collection
@@ -244,9 +318,43 @@ func (c *greeterCollection) CreateConfig(guildId string) {
 	c.Insert(defaultConfig)
 }
 
+func (c *greeterCollection) CreatePersonalConfig(userId string) {
+	count, _ := c.Find(personalGreeterConfig{UserID: userId}).Count()
+	if count > 0 {
+		return
+	}
+
+	log.Debug("Creating new personal config")
+
+	// Setup default values
+	personalConfig := personalGreeterConfig{
+		UserID:         userId,
+		VoiceGreet:      &[]bool{false}[0],
+		VoiceGreetSound: "",
+		PMGreet:         &[]bool{false}[0],
+		PMGreetMessage:  "",
+	}
+	c.Insert(personalConfig)
+}
+
 func (c *greeterCollection) GreetEnabled(guildId string) (bool, bool) {
 	config := greeterConfig{}
 	c.Find(greeterConfig{GuildID: guildId}).One(&config)
+
+	voiceGreet := false
+	pmGreet := false
+	if config.VoiceGreet != nil {
+		voiceGreet = *config.VoiceGreet
+	}
+	if config.PMGreet != nil {
+		pmGreet = *config.PMGreet
+	}
+	return voiceGreet, pmGreet
+}
+
+func (c *greeterCollection) PersonalGreetEnabled(userId string) (bool, bool) {
+	config := personalGreeterConfig{}
+	c.Find(personalGreeterConfig{UserID: userId}).One(&config)
 
 	voiceGreet := false
 	pmGreet := false
@@ -266,6 +374,15 @@ func (c *greeterCollection) VoiceGreetEnable(guildId string, enable bool) {
 	}}
 
 	c.Update(greeterConfig{GuildID: guildId}, upsertdata)
+}
+
+func (c *greeterCollection) VoicePersonalGreetEnable(userId string, enable bool) {
+	upsertdata := bson.M{"$set": personalGreeterConfig{
+		UserID:    userId,
+		VoiceGreet: &enable,
+	}}
+
+	c.Update(personalGreeterConfig{UserID: userId}, upsertdata)
 }
 
 func (c *greeterCollection) PMGreetEnable(guildId string, enable bool) {
@@ -300,6 +417,13 @@ func (c *greeterCollection) VoiceGreetSound(guildId string) string {
 	return config.VoiceGreetSound
 }
 
+func (c *greeterCollection) VoicePersonalGreetSound(userId string) string {
+	config := personalGreeterConfig{}
+	c.Find(personalGreeterConfig{UserID: userId}).One(&config)
+
+	return config.VoiceGreetSound
+}
+
 func (c *greeterCollection) SetVoiceGreetSound(guildId string, name string) {
 	data := bson.M{"$set": greeterConfig{
 		GuildID:         guildId,
@@ -307,4 +431,13 @@ func (c *greeterCollection) SetVoiceGreetSound(guildId string, name string) {
 	}}
 
 	c.Update(greeterConfig{GuildID: guildId}, data)
+}
+
+func (c *greeterCollection) SetVoicePersonalGreetSound(userId string, name string) {
+	data := bson.M{"$set": personalGreeterConfig{
+		UserID:         userId,
+		VoiceGreetSound: name,
+	}}
+
+	c.Update(personalGreeterConfig{UserID: userId}, data)
 }

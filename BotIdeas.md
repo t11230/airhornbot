@@ -10,7 +10,6 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 - Bit Bet on number of members in call
 - Bit Buy Pizza
 - Bit Buy Add Custom Commands (via Lua)
-- Bit Buy Welcome Message
 
 ##General:
 - Achievement Titles via roles

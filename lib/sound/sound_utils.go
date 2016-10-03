@@ -363,13 +363,18 @@ func AddCollection(newCollection *SoundCollection) error {
 	return nil
 }
 
+func escapeUnderscores(name string) string {
+	parts := strings.Split(name,"_")
+	return strings.Join(parts[0:],"\\_")
+}
+
 func PrintCollections() string {
 	result := ""
 	for _, coll := range collections {
 		result += "**"+coll.Prefix+":** "
 		for i, sound := range coll.Sounds {
 			if i < (len(coll.Sounds) - 1) {
-				result+= sound.Name+", "
+				result+= escapeUnderscores(sound.Name)+", "
 			} else {
 				result+= sound.Name+"\n"
 			}

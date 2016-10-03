@@ -126,7 +126,7 @@ func handleRoleCreate(cmd *modulebase.ModuleCommand) (string, error) {
     newrole, err := s.GuildRoleCreate(guild.ID)
     roleName := getRoleName(cmd.Message.Content)
     color, _ := m[cmd.Args[0]]
-    newrole, err = s.GuildRoleEdit(guild.ID, newrole.ID, roleName, color, false, role_perms)
+    newrole, err = s.GuildRoleEdit(guild.ID, newrole.ID, roleName, color, true, role_perms)
     member.Roles = append(member.Roles, newrole.ID)
     err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
     if err != nil {

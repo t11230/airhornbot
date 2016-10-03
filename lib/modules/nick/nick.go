@@ -16,7 +16,7 @@ This module allows the user to change their nickname.
 
 **usage:** !!nick *nickname*
     Changes user's nickname to *nickname*
-    **WARNING** Changing your nickname costs **500 bits**
+    **WARNING** Changing your nickname costs **200 bits**
 `
 )
 
@@ -45,7 +45,7 @@ func handleNickChange(cmd *modulebase.ModuleCommand) (string, error) {
     user := cmd.Message.Author
     guild := cmd.Guild
     s := cmd.Session
-    if bits.GetBits(guild.ID, user.ID) < 650 {
+    if bits.GetBits(guild.ID, user.ID) < 200 {
 		return "**FAILED TO ADD ROLE:** Insufficient bits.", nil
 	}
     if (len(cmd.Args)<1)||(cmd.Args[0]=="help") {
@@ -57,6 +57,6 @@ func handleNickChange(cmd *modulebase.ModuleCommand) (string, error) {
         log.Errorf("Failed to update user's nickname: %v", err)
         return "**Failed to update user's nickname**", nil
     }
-    bits.RemoveBits(s, guild.ID, user.ID, 500, "Changed nickname to "+nickname)
+    bits.RemoveBits(s, guild.ID, user.ID, 200, "Changed nickname to "+nickname)
     return "", nil
 }

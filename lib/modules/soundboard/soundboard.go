@@ -490,6 +490,9 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 }
 
 func silenceSounboard(cmd *modulebase.ModuleCommand) (string, error) {
+	if (len(cmd.Args)!=1)||(cmd.Args[0]=="help"){
+		return silenceHelpString, nil
+	}
 	duration, err := strconv.Atoi(cmd.Args[0])
 	if err != nil {
 		return "**Invalid silence duration**", nil

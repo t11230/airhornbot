@@ -8,6 +8,7 @@
         { "name": "help", "enable": true },
         { "name": "nick", "enable": true },
         { "name": "rolemod", "enable": true },
+        { "name": "store", "enable": true },
         { "name": "soundboard", "enable": true },
         { "name": "voicebonus", "enable": true }
     ]

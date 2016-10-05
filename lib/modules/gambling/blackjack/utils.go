@@ -129,6 +129,10 @@ func calculatePayout(pBlackjack bool, pScore int, dBlackjack bool, dScore int) P
 		return PayoutBlackjack
 	}
 
+	if pScore > 21 {
+		return PayoutLoss
+	}
+
 	// Check standard cases, no blackjack
 	if pScore > dScore {
 		return PayoutWin
@@ -136,9 +140,6 @@ func calculatePayout(pBlackjack bool, pScore int, dBlackjack bool, dScore int) P
 		return PayoutLoss
 	}
 
-	if pScore > 21 {
-		return PayoutLoss
-	}
 	return PayoutPush
 }
 

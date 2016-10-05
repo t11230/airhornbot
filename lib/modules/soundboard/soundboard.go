@@ -181,6 +181,7 @@ func uploadSoundFile(cmd *modulebase.ModuleCommand) (string, error) {
 			collection.Sounds = append(collection.Sounds, newSound)
 			newSound.Load(collection)
 			log.Debug("Added sound")
+			bits.RemoveBits(cmd.Session, cmd.Guild.ID, user.ID, 300, "Added sound "+prefix+"_"+name)
 			return "**"+utils.GetPreferredName(cmd.Guild, user.ID)+"** added sound **"+name+"** to collection **"+prefix+"**", nil
 		}
 	}

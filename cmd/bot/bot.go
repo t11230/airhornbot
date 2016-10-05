@@ -2,16 +2,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/bwmarrin/discordgo"
 	"github.com/t11230/ramenbot/lib/sound"
 	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 	"syscall"
-	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"github.com/bwmarrin/discordgo"
+	"time"
 
 	"github.com/t11230/ramenbot/lib/config"
 	"github.com/t11230/ramenbot/lib/modules"
@@ -23,12 +23,13 @@ var (
 	discord *discordgo.Session
 
 	// Prefix for chat commands
-	PREFIX = "!!"
+	PREFIX     = "!!"
 	buildstamp = ""
-	githash = ""
+	githash    = ""
 )
 
 const keikaku = "**TRANSLATOR'S NOTE:** Keikaku means plan"
+
 func init() {
 	// Seed the random number generator.
 	rand.Seed(time.Now().UnixNano())
@@ -45,8 +46,8 @@ func handlePatchUpdate() {
 	var err error
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGUSR1, syscall.SIGUSR2)
-    sig := <-sigs
-    if sig == syscall.SIGUSR1 {
+	sig := <-sigs
+	if sig == syscall.SIGUSR1 {
 		err = syscall.Exec("./patch", []string{}, nil)
 	}
 	if sig == syscall.SIGUSR2 {
@@ -54,7 +55,7 @@ func handlePatchUpdate() {
 	} else {
 		log.Error("Unrecognized Signal")
 	}
-	if err!=nil{
+	if err != nil {
 		log.Error("Exec failed in handlePatchUpdate")
 	}
 }
@@ -98,7 +99,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Handle version check
-	if strings.Compare(m.Content, "--version")==0 {
+	if strings.Compare(m.Content, "--version") == 0 {
 		gitstring := fmt.Sprintf("**Git Commit Hash:** %s\n", githash)
 		buildstring := fmt.Sprintf("**UTC Build Time:** %s\n", buildstamp)
 		s.ChannelMessageSend(channel.ID, gitstring)
@@ -167,7 +168,7 @@ func main() {
 	var (
 		version = flag.Bool("version", false, "Version")
 		verbose = flag.Bool("v", false, "Verbose")
-		patch = flag.Bool("p", false, "Patching")
+		patch   = flag.Bool("p", false, "Patching")
 		err     error
 	)
 	flag.Parse()
@@ -182,7 +183,7 @@ func main() {
 	}
 	if *patch {
 		if *verbose {
-			err = syscall.Exec("./patch_verbose",[]string{},nil)
+			err = syscall.Exec("./patch_verbose", []string{}, nil)
 		} else {
 			err = syscall.Exec("./patch", []string{}, nil)
 		}

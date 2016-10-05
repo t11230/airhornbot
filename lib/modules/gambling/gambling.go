@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"github.com/t11230/ramenbot/lib/modules/gambling/blackjack"
 	"github.com/t11230/ramenbot/lib/modules/modulebase"
 	"github.com/t11230/ramenbot/lib/perms"
 	"github.com/t11230/ramenbot/lib/utils"
@@ -14,8 +15,8 @@ import (
 )
 
 const (
-	ConfigName = "gambling"
-	helpString = "**!!$** : This module allows the user to use a number of gambling events and functions.\n"
+	ConfigName         = "gambling"
+	helpString         = "**!!$** : This module allows the user to use a number of gambling events and functions.\n"
 	gamblingHelpString = `**$**
 This module allows the user to use a number of gambling events and functions.
 
@@ -75,6 +76,31 @@ var commandTree = []modulebase.ModuleCommandTree{
 			"take": modulebase.CN{
 				Function:    takeBits,
 				Permissions: []perms.Perm{bitsAdminPerm},
+			},
+			"21": modulebase.CN{
+				SubKeys: modulebase.SK{
+					"start": modulebase.CN{
+						Function: blackjack.HandleStart,
+					},
+					"deal": modulebase.CN{
+						Function: blackjack.HandleDeal,
+					},
+					"bet": modulebase.CN{
+						Function: blackjack.HandleBet,
+					},
+					"hit": modulebase.CN{
+						Function: blackjack.HandleHit,
+					},
+					"stay": modulebase.CN{
+						Function: blackjack.HandleStay,
+					},
+					"split": modulebase.CN{
+						Function: blackjack.HandleSplit,
+					},
+					"double": modulebase.CN{
+						Function: blackjack.HandleDoubleDown,
+					},
+				},
 			},
 		},
 		Function: handleRootCommand,

@@ -167,7 +167,7 @@ func (r *Round) PlayerHand(player *Player, hand *Hand) {
 
 	for !hand.Complete {
 		// Handle prompt
-		message := "%s's turn. Hit or Stay? (You have 30 seconds)"
+		message := "%s's turn. Hit or Stay? (You have 60 seconds)"
 		// TODO: Handle splits/double downs
 		// message := "@%s's turn. Hit, Stay"
 		// if checkHandCanSplit(player.Hands[0].Pile) {
@@ -178,7 +178,7 @@ func (r *Round) PlayerHand(player *Player, hand *Hand) {
 
 		// Create a TurnTimer that will timeout after x seconds and
 		// accept an action during that time.
-		t := newTurnTimer(time.Second*30, []Action{
+		t := newTurnTimer(time.Second*60, []Action{
 			ActionHit, ActionStay, ActionSurrender, ActionDoubleDown,
 		}, player.UserID)
 
@@ -294,7 +294,7 @@ func (r *Round) CloseGame() {
 	}
 
 	// Setup the payout ratio
-	blackjackPayoutRatio := 1.6
+	blackjackPayoutRatio := 1.8
 
 	// Calculate the dealer score
 	dealerBlackjack := r.Dealer.Hands[0].Blackjack

@@ -34,7 +34,8 @@ This module allows the user to play sounds from a dank soundboard.
 
 **usage:** !!s *collection* *sound*
 	Plays the sound *sound* from the collection of sounds *collection*
-	Collections and the sounds they contain listed below:
+	For a list of sounds in a collection, type !!s *collection* help
+	Collections listed below:
 `
 	sHelpStringTail = `
 **EXAMPLE:** !!s airhorn default
@@ -471,6 +472,9 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 			// If they passed a specific sound effect, find and select that (otherwise play nothing)
 			var snd *sound.Sound
 			if len(cmd.Args) > 1 {
+				if cmd.Args[1]=="help" {
+					return sound.PrintCollection(coll), nil
+				}
 				for _, s := range coll.Sounds {
 					if cmd.Args[1] == s.Name {
 						snd = s

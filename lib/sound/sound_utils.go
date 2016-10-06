@@ -371,13 +371,25 @@ func escapeUnderscores(name string) string {
 func PrintCollections() string {
 	result := ""
 	for _, coll := range collections {
-		result += "**"+coll.Prefix+":** "
-		for i, sound := range coll.Sounds {
-			if i < (len(coll.Sounds) - 1) {
-				result+= escapeUnderscores(sound.Name)+", "
-			} else {
-				result+= sound.Name+"\n"
-			}
+		result += "**"+coll.Prefix+"**\n"
+		// for i, sound := range coll.Sounds {
+		// 	if i < (len(coll.Sounds) - 1) {
+		// 		result+= escapeUnderscores(sound.Name)+", "
+		// 	} else {
+		// 		result+= sound.Name+"\n"
+		// 	}
+		// }
+	}
+	return result
+}
+
+func PrintCollection(collection *SoundCollection) string {
+	result := "**"+strings.ToUpper(collection.Prefix)+"**\n**Sounds:** "
+	for i, sound := range collection.Sounds {
+		if i < (len(collection.Sounds) - 1) {
+			result+= escapeUnderscores(sound.Name)+", "
+		} else {
+			result+= sound.Name+"\n"
 		}
 	}
 	return result

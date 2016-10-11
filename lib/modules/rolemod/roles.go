@@ -160,8 +160,8 @@ func handleRoleCreate(cmd *modulebase.ModuleCommand) (string, error) {
     titles.Upsert(titleConfig{UserID: user.ID}, upsertdata)
     for _, roleID := range(member.Roles){
         role, _ := s.State.Role(guild.ID, roleID)
-        if role.Hoist {
-            s.GuildRoleEdit(guild.ID, roleID, role.Name, role.Color, false, role.Permissions)
+        if role.ID != newrole.ID {
+            s.GuildRoleEdit(guild.ID, roleID, role.Name, newrole.Color, false, role.Permissions)
         }
     }
     member.Roles = append(member.Roles, newrole.ID)

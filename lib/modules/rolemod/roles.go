@@ -465,7 +465,11 @@ func roleChangeUpdateCallback(s *discordgo.Session, m *discordgo.GuildMemberUpda
         role, _ := s.State.Role(guild.ID, roleID)
         if role.ID != trueTitle.ID {
             log.Debug("Removing Unauthorized Title")
-            member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+            if i < len(member.Roles) - 1 {
+                member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+            } else if i == len(member.Roles) - 1 {
+                member.Roles = member.Roles[i:]
+            }
             needsUpdate = true
         } else if role.ID == trueTitle.ID {
             needsAppend = false

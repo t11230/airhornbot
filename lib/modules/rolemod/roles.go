@@ -8,6 +8,9 @@ import (
     "github.com/t11230/ramenbot/lib/perms"
     "github.com/t11230/ramenbot/lib/utils"
     "github.com/t11230/ramenbot/lib/bits"
+    "github.com/t11230/ramenbot/lib/ramendb"
+	"gopkg.in/mgo.v2/bson"
+    "gopkg.in/mgo.v2"
 )
 
 var (
@@ -40,6 +43,7 @@ This module allows the user to choose from a set of roles.
 
 **functions:**
     *color:* This function allows the user to change the color of their name.
+    *create:* This function allows the user to change their visible title.
 
 For more info on using any of these functions, type **!!role [function name] help**`
 
@@ -50,7 +54,7 @@ For more info on using any of these functions, type **!!role [function name] hel
 
 **color names:** red, orange, yellow, green, blue, purple, disco, clear
     Use color *clear* to reset to black.
-    Use color *disco* for disco party.`
+    Use color *disco* for disco party. (involves flashing colors)`
 
     roleCreateHelpString = `**CREATE**
 
@@ -59,8 +63,18 @@ For more info on using any of these functions, type **!!role [function name] hel
     Then, gives user that role.
     **WARNING** Creating a role costs **650 bits**
     `
+    titleCollName = "titletrack"
     role_perms = 0x00000001 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00004000 | 0x00008000 | 0x00010000 | 0x00020000 | 0x00100000 | 0x00200000
 )
+
+type titleCollection struct {
+	*mgo.Collection
+}
+
+type titleConfig struct {
+	UserID         string
+	Title          *discordgo.Role `bson:",omitempty"`
+}
 
 // List of commands that this module accepts
 var commandTree = []modulebase.ModuleCommandTree{
@@ -91,7 +105,11 @@ func SetupFunc(config *modulebase.ModuleConfig) (*modulebase.ModuleSetupInfo, er
     m["green"]=0x2ecc71
     m["blue"]=0x3498db
     m["purple"]=0x9b59b6
+    events := []interface{}{
+		roleChangeUpdateCallback,
+	}
 	return &modulebase.ModuleSetupInfo{
+        Events:   &events,
 		Commands: &commandTree,
         Help:     helpString,
         DBStart:  handleDbStart,
@@ -113,7 +131,10 @@ func getRoleName(msg string) string {
 }
 
 func handleRoleCreate(cmd *modulebase.ModuleCommand) (string, error) {
+    log.Debug("Entering title create function")
     user := cmd.Message.Author
+    titles := titleCollection{ramendb.GetCollection(cmd.Guild.ID, titleCollName)}
+    log.Debugf("Grabbed title collection %v", titles)
     guild := cmd.Guild
     s := cmd.Session
     member := utils.GetMember(guild, user.ID)
@@ -123,16 +144,34 @@ func handleRoleCreate(cmd *modulebase.ModuleCommand) (string, error) {
     if len(cmd.Args)<2 {
         return roleCreateHelpString, nil
     }
+    log.Debug("Creating role")
     newrole, err := s.GuildRoleCreate(guild.ID)
     roleName := getRoleName(cmd.Message.Content)
     color, _ := m[cmd.Args[0]]
     newrole, err = s.GuildRoleEdit(guild.ID, newrole.ID, roleName, color, true, role_perms)
+    log.Debug("Creating upsert data")
+    newtitle := titleConfig{
+        UserID:    user.ID,
+        Title:     newrole,
+    }
+    upsertdata := bson.M{"$set": newtitle}
+    count, _ := titles.Find(titleConfig{UserID: user.ID}).Count()
+    log.Debugf("(Count was %v)", count)
+    titles.Upsert(titleConfig{UserID: user.ID}, upsertdata)
+    for _, roleID := range(member.Roles){
+        role, _ := s.State.Role(guild.ID, roleID)
+        if role.Hoist {
+            s.GuildRoleEdit(guild.ID, roleID, role.Name, role.Color, false, role.Permissions)
+        }
+    }
     member.Roles = append(member.Roles, newrole.ID)
     err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
     if err != nil {
-        log.Error("Failed to update user's role")
+        log.Error("Failed to update user's role: %v", err)
         return "**Failed to update user's role**", nil
     }
+    count, _ = titles.Find(titleConfig{UserID: user.ID}).Count()
+    log.Debugf("(Count change to %v)", count)
     bits.RemoveBits(s, guild.ID, user.ID, 650, "Added role "+roleName)
     return "", nil
 }
@@ -384,4 +423,68 @@ func discoParty4ever(s *discordgo.Session, guild *discordgo.Guild, user *discord
         s.GuildRoleEdit(guild.ID, disco, "disco", 0x9b59b6, false, role_perms)
     }
     return ""
+}
+
+func roleChangeUpdateCallback(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
+    log.Debug("Role Change Callback Invoked!")
+    needsAppend := true
+    needsUpdate := false
+    var err error
+	titles := titleCollection{ramendb.GetCollection(m.GuildID, titleCollName)}
+	guild, _ := s.State.Guild(m.GuildID)
+	if guild == nil {
+		log.WithFields(log.Fields{
+			"guild": m.GuildID,
+		}).Warning("Failed to grab guild")
+		return
+	}
+
+	member := m.Member
+	if member == nil {
+		log.WithFields(log.Fields{
+			"member": member,
+		}).Warning("Failed to grab member")
+		return
+	}
+
+	if member.User.Bot {
+        log.Debug("User is Bot")
+		return
+	}
+    user := member.User
+    log.Debugf("User %v had their role changed", user.ID)
+	data := titleConfig{}
+	titles.Find(titleConfig{UserID: user.ID}).One(&data)
+    log.Debugf("Got collection data %v", data)
+	trueTitle := data.Title
+    if trueTitle == nil {
+        log.Debug("No Title DB Info")
+        return
+    }
+    for i, roleID := range(member.Roles){
+        role, _ := s.State.Role(guild.ID, roleID)
+        if role.ID != trueTitle.ID {
+            log.Debug("Removing Unauthorized Title")
+            member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+            needsUpdate = true
+        } else if role.ID == trueTitle.ID {
+            needsAppend = false
+        }
+    }
+    if needsAppend {
+        needsUpdate = true
+        trueTitle, err = s.GuildRoleEdit(guild.ID, trueTitle.ID, trueTitle.Name, trueTitle.Color, true, trueTitle.Permissions)
+        if err != nil {
+            log.Errorf("Failed to grab user's title: %v", err)
+            return
+        }
+        member.Roles = append(member.Roles, trueTitle.ID)
+    }
+    if needsUpdate {
+        err = s.GuildMemberEdit(guild.ID, user.ID, member.Roles)
+        if err != nil {
+            log.Errorf("Failed to correct user's title: %v", err)
+            return
+        }
+    }
 }

@@ -7,9 +7,8 @@ This is a list of potential bot ideas that have yet to be implemented.  Feel fre
 - Bit Stock Market (real or simulated)
 - Bit Poker
 - Bit Bets on online games (CAH, Pokemon Showdown)
-- Bit Bet on number of members in call
 - Bit Buy Pizza
-- Bit Buy Add Custom Commands (via Lua)
+- Bit Buy Add Custom Commands
 
 ##General:
 - Achievement Titles via roles

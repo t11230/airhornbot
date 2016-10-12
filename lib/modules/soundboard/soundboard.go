@@ -484,6 +484,8 @@ func handleSoundCommand(cmd *modulebase.ModuleCommand) (string, error) {
 				if snd == nil {
 					return "", errors.New("Sound was nil")
 				}
+			} else {
+				return sound.PrintCollection(coll), nil
 			}
 
 			go sound.EnqueuePlay(cmd.Session, cmd.Message.Author, cmd.Guild, coll, snd)
